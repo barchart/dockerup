@@ -60,6 +60,7 @@ class Docker(object):
 
 	def pull(self, image):
 
+		self.log.debug('Pulling image: %s', image)
 		for line in self.__read_command(['docker', 'pull', image]):
 			if line.startswith('Status: Downloaded newer image'):
 				return True
@@ -69,28 +70,30 @@ class Docker(object):
 	# Run a new container
 	def run(self, image, options=None):
 
-		args = []
+		args = ['docker', 'run', '-d', '--restart=always']
 
 		if options is not None:
 			args.extend(options)
 
 		args.append(image)
 
-		print args
+		self.log.debug('Running container: %s' % image)
 
 		container = self.__read_command(args).strip()
 
-		self.log.info('Started container %s' % container)
+		self.log.info('Started container: %s' % container)
 
 		return container
 
 	# Start existing container
 	def start(self, container):
+		self.log.debug('Starting container: %s', container)
 		out = self.__read_command(['docker', 'start', container])
 
 	# Stop running container
 	def stop(self, container, remove=True):
 
+		self.log.debug('Stopping container: %s', container)
 		out = self.__read_command(['docker', 'stop', container])
 
 		if remove:
@@ -99,13 +102,13 @@ class Docker(object):
 	# Remove container
 	def rm(self, container):
 
-		self.log.info('Removing stopped container: %s' % container)
+		self.log.debug('Removing stopped container: %s' % container)
 		out = self.__read_command(['docker', 'rm', container])
 
 	# Remove image
 	def rmi(self, image):
 
-		self.log.info('Removing image: %s' % container)
+		self.log.debug('Removing image: %s' % image)
 		out = self.__read_command(['docker', 'rmi', image])
 
 	# Cleanup stopped containers and unused images
@@ -120,14 +123,12 @@ class Docker(object):
 			if container['running']:
 				running.append(container['image'])
 			else:
-				self.log.info('Removing stopped container: %s' % container['id'])
-				out = self.__read_command(['docker', 'rm', container['id']])
+				self.rm(container['id'])
 		
 		if images:
 			for image in self.images():
 				if not image['id'] in running:
-					self.log.info('Removing unused image: %s' % image['id'])
-					out = self.__read_command(['docker', 'rmi', image['id']])
+					self.rmi(image['id'])
 
 	"""
 	Private methods
@@ -179,7 +180,8 @@ class Docker(object):
 		contents = proc.stdout.read()
 
 		if proc.poll() != 0:
-			raise Exception('Command failed: %s' % contents)
+			self.log.debug('Command failed: %s\nSTDOUT:\n%s\nSTDERR:\n%s' % (' '.join(command), contents.strip(), proc.stderr.read().strip()))
+			raise Exception('Command failed: %s' % ' '.join(command))
 
 		if as_dict:
 
@@ -199,7 +201,7 @@ class Docker(object):
 	def __kill_process(self, proc):
 
 		if proc.poll() is None:
-			self.log.info( 'Error: process taking too long to complete - terminating')
+			self.log.error( 'Error: process taking too long to complete - terminating')
 			proc.kill()
 
 	def __split_fields(self, line, nul_value=None):

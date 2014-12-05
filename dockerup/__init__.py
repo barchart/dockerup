@@ -57,11 +57,11 @@ class DockerUp(object):
 	def update(self, container):
 
 		if not 'image' in container:
-			self.log.info('No image defined for container, skipping')
+			self.log.warn('No image defined for container, skipping')
 			return
 
-		status = self.status(container)
 		updated = self.docker.pull(container['image']) or self.updated(container)
+		status = self.status(container)
 
 		if updated or not status['running']:
 
@@ -69,9 +69,12 @@ class DockerUp(object):
 				self.stop(status)
 
 			if status['image']:
-				self.run(container, status)
+				try:
+					self.run(container, status)
+				except Exception as e:
+					self.log.error('Could not run container: %s' % e)
 			else:
-				self.log.info('Image not found: %s' % container['image'])
+				self.log.error('Image not found: %s' % container['image'])
 
 		return status
 
@@ -128,8 +131,7 @@ class DockerUp(object):
 		if 'type' in config and config['type'] != 'docker':
 			return False
 
-		args = ['docker', 'run', '-d', '--restart=always',
-			'-v', '/var/log/ext/%s:/var/log/ext' % status['image'],
+		args = ['-v', '/var/log/ext/%s:/var/log/ext' % status['image'],
 			'-v', '/var/run/crypter:/var/run/crypter']
 
 		if 'volumes' in config:
@@ -137,7 +139,7 @@ class DockerUp(object):
 			for vol in config['volumes']:
 
 				if not 'containerPath' in vol:
-					self.log.info('No container mount point specified, skipping volume')
+					self.log.warn('No container mount point specified, skipping volume')
 					continue
 
 				volargs = []
@@ -152,7 +154,7 @@ class DockerUp(object):
 
 		if 'name' in config:
 			if config['name'].startswith('local-'):
-				self.log.info('Invalid container name, local-* is reserved')
+				self.log.error('Invalid container name, local-* is reserved')
 				return False
 			args.append('--name=%s' % config['name'])
 
@@ -186,7 +188,7 @@ class DockerUp(object):
 				# Remove logs directory
 				shutil.rmtree('/var/log/ext/%s' % status['image'])
 			except Exception as e:
-				self.log.info('Could not remove logs: %s' % e)
+				self.log.warn('Could not remove logs: %s' % e)
 
 	# Shutdown old containers
 	def cleanup(self, running):
