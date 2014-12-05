@@ -1,0 +1,23 @@
+{
+	"containers": [
+		{
+			"type": "docker",
+			"name": "registry",
+			"image": "registry",
+			"portMappings": [
+				{
+					"containerPort": "5000",
+					"hostPort": "80"
+				}
+			],
+			"env": {
+				"STANDALONE": "false",
+				"SETTINGS_FLAVOR": "s3",
+				"AWS_BUCKET": "my-docker-registry",
+				"STORAGE_PATH": "/registry",
+				"MIRROR_SOURCE": "https://registry-1.docker.io",
+				"MIRROR_SOURCE_INDEX": "https://index.docker.io registry"
+			}
+		}
+	]
+}
