@@ -7,7 +7,7 @@ the host. Using this configuration, it kills off containers that
 shouldn't be running, upgrades containers that have updates available,
 and launches all containers listed in the config.
 
-To install dockerup on Ubuntu:
+To install dockerup on Ubuntu, install `docker` and run:
 
 ```
 pip install dockerup
@@ -15,16 +15,16 @@ pip install dockerup
 
 #### Running dockerup
 
-dockerup is typically run from a cron job (i.e. every minute) to check for
+dockerup is typically run from a cron job (once a minute) to check for
 configuration and container updates.
 
 ```
-dockerup --config aws --cache /var/cache/dockerup
+dockerup --config /my/config.json --cache /var/cache/dockerup
 ```
 
-You can also omit `--config` and specify configuration in `/etc/dockerup/dockerup.json`.
-A sample JSON configuration file is shown below:
-
+If you omit `--config`, dockerup will look in `/etc/dockerup/dockerup.json`.
+You can also use EC2 user-data by specifying `--config aws`. A sample JSON
+configuration file is shown below:
 
 ```
 {
@@ -36,7 +36,7 @@ A sample JSON configuration file is shown below:
 			"portMappings": [
 				{
 					"containerPort": "5000",
-					"hostPort": "80"
+					"hostPort": "5000"
 				}
 			],
 			"env": {
@@ -51,7 +51,7 @@ A sample JSON configuration file is shown below:
         {
             "type": "docker",
             "name": "historical-app",
-            "image": "barchart/historical-app-alpha",
+            "image": "barchart/historical",
             "portMappings": [ 
                 {
                     "containerPort": "8080",
