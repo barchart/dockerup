@@ -5,7 +5,9 @@ configuration from a file (or EC2 user-data to facilitate deploy-time
 configuration) to build a list of containers that should be running on
 the host. Using this configuration, it kills off containers that
 shouldn't be running, upgrades containers that have updates available,
-and launches all containers listed in the config.
+and launches all containers listed in the config. After each run it
+cleans up any leftover containers and images that are not in use, to
+save disk space.
 
 To install dockerup on Ubuntu, install `docker` and run:
 
