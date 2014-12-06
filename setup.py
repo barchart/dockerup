@@ -1,11 +1,11 @@
 from distutils.core import setup
 
 setup(name='dockerup',
-	description='Docker container manager',
+	description='Docker container bootstrapper',
 	long_description="""
-	Docker container manager that synchronizes state from a configuration file.
-	Can load configuration from EC2 user-data, and automatically handles container
-	updates and redeployment.
+	Docker container bootstrapper that synchronizes state from a configuration file.
+	It can load configuration from EC2 user-data, and automatically handles container
+	updates and cleanup.
 	""",
 	author='Jeremy Jongsma',
 	author_email='jeremy@barchart.com',
