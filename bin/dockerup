@@ -1,0 +1,108 @@
+#!/usr/bin/python2.7
+import json
+import os
+import sys
+import logging
+import argparse
+import fcntl
+import dockerup
+from contextlib import contextmanager
+
+"""
+Service for synchronizing locally running Docker containers with an external
+configuration file. If available, EC2 user-data is used as the configuration file,
+otherwise dockerup looks in /etc/dockerup/dockerup.json by default (override with --config).
+
+This script can be run on-demand or via a cron job.
+
+Sample config file is shown below:
+
+{
+	"containers": [
+		{
+			"type": "docker",
+			"name": "historical-app",
+			"image": "barchart/historical-app-alpha",
+			"portMappings": [ 
+				{
+					"containerPort": "8080",
+					"hostPort": "8080"
+				}
+			]
+		},
+		{
+			"type": "docker",
+			"name": "logstash-forwarder",
+			"image": "barchart/logstash-forwarder",
+			"volumes": [
+				{
+					"containerPath": "/var/log/containers",
+					"hostPath": "/var/log/ext",
+					"mode": "ro"
+				}
+			]
+		}
+	]
+}
+"""
+
+DEFAULT_CONFIG = '/etc/dockerup/dockerup.json'
+
+@contextmanager
+def lock(lock_file):
+
+	if os.path.exists(lock_file):
+
+		print 'Lock could not be acquired: %s' % lock_file
+		sys.exit(-1)
+
+	else:
+		open(lock_file, 'w').write("1")
+		try:
+			yield
+		finally:
+			os.remove(lock_file)
+
+if __name__ == '__main__':
+
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--config', help='Container configuration')
+	parser.add_argument('--cache', default='/var/cache/dockerup', help='Configuration cache')
+	parser.add_argument('-v', '--verbose', action='store_true', help='Verbose logging for debugging')
+	args = parser.parse_args()
+
+	if args.verbose:
+		logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(name)s:%(lineno)d %(message)s')
+	else:
+		logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s:%(lineno)d %(message)s')
+
+	if not os.path.exists(args.cache):
+		try:
+			os.makedirs(args.cache)
+		except Exception as e:
+			print 'Could not create cache directory: %s' % e
+			sys.exit(1)
+
+	with lock('%s/run.lock' % args.cache):
+
+		try:
+			if args.config:
+				if args.config == 'aws':
+					config = json.loads(read_command(['ec2metadata', '--user-data'], timeout=5.0))
+				elif os.path.exists(args.config):
+					with open(args.config) as local:
+						config = json.load(local)
+				else:
+					print 'Specified configuration file not found: %s' % args.config
+					sys.exit(1)
+			elif os.path.exists(DEFAULT_CONFIG):
+				with open(DEFAULT_CONFIG) as local:
+					config = json.load(local)
+			else:
+				print 'No configuration found, exiting'
+				sys.exit(1)
+		except Exception as e:
+			print 'Could not load configuration: %s' % e
+			sys.exit(1)
+
+		dockerup.DockerUp(config, args.cache).start()

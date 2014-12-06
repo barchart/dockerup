@@ -9,7 +9,6 @@ __pycache__/
 MANIFEST
 .Python
 env/
-bin/
 build/
 develop-eggs/
 dist/
