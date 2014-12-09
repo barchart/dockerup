@@ -179,7 +179,7 @@ class Docker(object):
 
 		contents = proc.stdout.read()
 
-		if proc.poll() != 0:
+		if proc.wait() != 0:
 			self.log.debug('Command failed: %s\nSTDOUT:\n%s\nSTDERR:\n%s' % (' '.join(command), contents.strip(), proc.stderr.read().strip()))
 			raise Exception('Command failed: %s' % ' '.join(command))
 
