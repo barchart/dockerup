@@ -131,8 +131,8 @@ class DockerUp(object):
 		if 'type' in config and config['type'] != 'docker':
 			return False
 
-		args = ['-v', '/var/log/ext/%s:/var/log/ext' % status['image'],
-			'-v', '/var/run/crypter:/var/run/crypter']
+		# Set up exported logging directory for apps
+		args = ['-v', '/var/log/ext/%s:/var/log/ext' % status['image']]
 
 		if 'volumes' in config:
 
