@@ -66,11 +66,14 @@ class FilesConfig(Config):
 
 		self.log.debug('Loading configuration from %s' % directory)
 
+		containers = []
 		for entry in os.listdir(directory):
 			if entry.endswith('.json'):
 				with open('%s/%s' % (directory, entry)) as local:
-					self.merge(json.load(local))
+					containers.append(json.load(local))
 
+		if len(containers):
+			self.merge({ 'containers': containers })
 
 class AWSConfig(Config):
 

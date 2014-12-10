@@ -10,10 +10,10 @@ setup(name='dockerup',
 	author='Jeremy Jongsma',
 	author_email='jeremy@barchart.com',
 	url='https://github.com/barchart/dockerup',
-	version='1.0.5',
+	version='1.0.6',
 	packages=['dockerup'],
 	scripts=['bin/dockerup'],
 	data_files=[
 		('/etc/dockerup', ['etc/dockerup.conf']),
-		('/etc/dockerup/dockerup.conf.d', ['etc/dockerup.json.sample']),
+		('/etc/dockerup/containers.d', ['etc/dockerup.json.sample']),
 	])
