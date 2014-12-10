@@ -57,10 +57,14 @@ class Docker(object):
 
 	def pull(self, image):
 
-		self.log.debug('Pulling image: %s', image)
-		for line in read_command(['docker', 'pull', image]):
-			if line.startswith('Status: Downloaded newer image'):
-				return True
+		try:
+			self.log.debug('Pulling image: %s', image)
+			for line in read_command(['docker', 'pull', image]):
+				if line.startswith('Status: Downloaded newer image'):
+					return True
+		except:
+			# Missing image probably, just return false
+			pass
 
 		return False
 
