@@ -124,7 +124,13 @@ class DockerUp(object):
 					json.dump(container, local)
 
 	def __cache_name(self, container):
-		return '%s-%s' % (container['image'].replace(':', '_').replace('/', '_'), container['name'])
+
+		image_clean = container['image'].replace(':', '_').replace('/', '_')
+
+		if 'name' in container:
+			return '%s-%s' % (image_clean, container['name'])
+
+		return image_clean
 
 	def run(self, config, status):
 
