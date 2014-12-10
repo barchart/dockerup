@@ -14,5 +14,6 @@ setup(name='dockerup',
 	packages=['dockerup'],
 	scripts=['bin/dockerup'],
 	data_files=[
-		('/etc/dockerup', ['etc/dockerup.json.sample'])
+		('/etc/dockerup', ['etc/dockerup.conf']),
+		('/etc/dockerup/dockerup.conf.d', ['etc/dockerup.json.sample']),
 	])
