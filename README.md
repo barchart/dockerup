@@ -17,7 +17,9 @@ pip install dockerup
 #### Running dockerup
 
 dockerup is typically run from a cron job (once a minute) to check for
-configuration and container updates.
+configuration and container updates. You should also run it immediately
+on boot to ensure containers get started quickly after a reboot without
+waiting on the next run.
 
 ```
 dockerup --config /etc/dockerup/dockerup.conf --cache /var/cache/dockerup
