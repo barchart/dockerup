@@ -105,5 +105,4 @@ if __name__ == '__main__':
 			print 'No configuration provided'
 			sys.exit(1)
 
-		print json.dumps(config.config, indent=4)
-		#DockerUp(config.config, args.cache).start()
+		DockerUp(config.config, args.cache).start()
