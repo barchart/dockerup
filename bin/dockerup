@@ -5,6 +5,7 @@ import sys
 import logging
 import argparse
 import fcntl
+import errno
 from contextlib import contextmanager
 from dockerup import conf, DockerUp
 
@@ -51,19 +52,17 @@ DEFAULT_CACHE = '/var/cache/dockerup'
 LOG_FORMAT='%(asctime)s %(levelname)s %(name)s:%(lineno)d %(message)s'
 
 @contextmanager
-def lock(lock_file):
+def flock(filename):
 
-	if os.path.exists(lock_file):
-
-		print 'Lock could not be acquired: %s' % lock_file
-		sys.exit(-1)
-
-	else:
-		open(lock_file, 'w').write("1")
-		try:
+	try:
+		with open(filename, 'a') as fd:
+			fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
 			yield
-		finally:
-			os.remove(lock_file)
+	except IOError, e:
+		if e.errno == errno.EAGAIN:
+			print 'Lock could not be acquired: %s' % filename
+			sys.exit(-1)
+		raise
 
 
 if __name__ == '__main__':
@@ -90,7 +89,7 @@ if __name__ == '__main__':
 			print 'Could not create cache directory: %s' % e
 			sys.exit(1)
 
-	with lock('%s/run.lock' % args.cache):
+	with flock('%s/run.lock' % args.cache):
 
 		settings = conf.settings(args)
 		config = conf.Config()
