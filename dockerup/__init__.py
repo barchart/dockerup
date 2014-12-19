@@ -71,6 +71,7 @@ class DockerUp(object):
 			if status['image']:
 				try:
 					self.run(container, status)
+					status = self.status(container)
 				except Exception as e:
 					self.log.error('Could not run container: %s' % e)
 			else:
