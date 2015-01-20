@@ -69,11 +69,14 @@ class Docker(object):
 
 		try:
 			self.log.debug('Pulling image: %s', image)
-			for line in read_command(['docker', 'pull', image]):
+			for line in read_command(['docker', 'pull', image]).split('\n'):
 				if line.startswith('Status: Downloaded newer image'):
+					self.log.debug('Updated image found')
 					self.flush_images()
 					return True
+			self.log.debug('Image is up to date')
 		except:
+			self.log.debug('Pull failed')
 			# Missing image probably, just return false
 			pass
 
@@ -140,22 +143,17 @@ class Docker(object):
 		# Always refresh state before cleanup
 		self.flush()
 
-		running = []
-
 		for container in self.containers():
-			if container['running']:
-				running.append(container['image'])
-			else:
+			if not container['running']:
 				self.rm(container['id'])
 		
-		if images:
-			for image in self.images():
-				if not image['id'] in running:
-					try:
-						self.rmi(image['id'])
-					except Exception as e:
-						# Probably an intermediary container
-						pass
+		out = read_command(['docker', 'images', '-f', 'dangling=true', '-q', '--no-trunc']).strip()
+		if len(out):
+			dangling = out.split('\n')
+			self.log.debug('Dangling images: %s' % dangling)
+			if len(dangling):
+				for dangling in out.split('\n'):
+					self.rmi(dangling)
 
 	"""
 	Private methods

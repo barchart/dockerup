@@ -85,8 +85,9 @@ if __name__ == '__main__':
 	if not os.path.exists(args.cache):
 		try:
 			os.makedirs(args.cache)
+			log.debug('Created cache directory: %s' % args.cache)
 		except Exception as e:
-			print 'Could not create cache directory: %s' % e
+			log.error('Could not create cache directory: %s' % e)
 			sys.exit(1)
 
 	with flock('%s/run.lock' % args.cache):
@@ -101,7 +102,7 @@ if __name__ == '__main__':
 			config.merge(conf.AWSConfig())
 
 		if not len(config.config):
-			print 'No configuration provided'
+			log.error('No configuration provided')
 			sys.exit(1)
 
 		DockerUp(config.config, args.cache).start()

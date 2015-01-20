@@ -67,6 +67,7 @@ class DockerUp(object):
 		if updated or not current['running']:
 
 			if current['running']:
+				self.log.debug('Stopping old container: %s' + current['container'])
 				self.stop(current)
 
 			if status['image']:
@@ -218,11 +219,15 @@ class DockerUp(object):
 			if status['container']:
 				existing.append(status['container'])
 
+		self.log.debug('Cleaning up orphaned containers')
+
 		# Iterate through running containers and stop them if they don't match a cached config
 		[self.docker.stop(c['id']) for c in self.docker.containers() if c['running'] and not c['id'] in existing]
 
 	# Shutdown leftover containers from old configurations
 	def cleanup(self, running):
+
+		self.log.debug('Cleaning up missing configurations')
 
 		for entry in os.listdir(self.cache):
 
