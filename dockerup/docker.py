@@ -129,7 +129,11 @@ class Docker(object):
 		if images:
 			for image in self.images():
 				if not image['id'] in running:
-					self.rmi(image['id'])
+					try:
+						self.rmi(image['id'])
+					except Exception as e:
+						# Probably an intermediary container
+						pass
 
 	"""
 	Private methods

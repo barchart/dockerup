@@ -60,13 +60,14 @@ class DockerUp(object):
 			self.log.warn('No image defined for container, skipping')
 			return
 
+		current = self.status(container)
 		updated = self.docker.pull(container['image']) or self.updated(container)
 		status = self.status(container)
 
-		if updated or not status['running']:
+		if updated or not current['running']:
 
-			if status['running']:
-				self.stop(status)
+			if current['running']:
+				self.stop(current)
 
 			if status['image']:
 				try:
@@ -197,7 +198,30 @@ class DockerUp(object):
 			except Exception as e:
 				self.log.warn('Could not remove logs: %s' % e)
 
-	# Shutdown old containers
+	# Shutdown containers with unrecognized images
+	def shutdown_unknown(self):
+
+		existing = []
+
+		for entry in os.listdir(self.cache):
+
+			if not entry.endswith('.json'):
+				continue
+
+			cachefile = '%s/%s' % (self.cache, entry)
+
+			with open(cachefile) as local:
+				cached = json.load(local)
+
+			status = self.status(cached)
+			
+			if status['container']:
+				existing.append(status['container'])
+
+		# Iterate through running containers and stop them if they don't match a cached config
+		[self.docker.stop(c['id']) for c in self.docker.containers() if c['running'] and not c['id'] in existing]
+
+	# Shutdown leftover containers from old configurations
 	def cleanup(self, running):
 
 		for entry in os.listdir(self.cache):
@@ -218,6 +242,10 @@ class DockerUp(object):
 			os.unlink(cachefile)
 
 	def start(self):
+
+		# Rare occurence, kill containers that have an unknown image tag
+		# Usually due to manual updates, may be required to avoid port binding conflicts
+		self.shutdown_unknown()
 
 		# Process configuration and store running container IDs
 		running = []
