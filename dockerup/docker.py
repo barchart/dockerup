@@ -12,6 +12,16 @@ class Docker(object):
 
 		self.log = logging.getLogger(__name__)
 
+	def flush_images(self):
+		self.image_cache = []
+
+	def flush_containers(self):
+		self.container_cache = []
+
+	def flush(self):
+		self.flush_images()
+		self.flush_containers()
+
 	def refresh(self):
 		self.image_cache = self.__load_images()
 		self.container_cache = self.__load_containers()
@@ -61,6 +71,7 @@ class Docker(object):
 			self.log.debug('Pulling image: %s', image)
 			for line in read_command(['docker', 'pull', image]):
 				if line.startswith('Status: Downloaded newer image'):
+					self.flush_images()
 					return True
 		except:
 			# Missing image probably, just return false
@@ -84,12 +95,17 @@ class Docker(object):
 
 		self.log.info('Started container: %s' % container)
 
+		self.flush_containers()
+
 		return container
 
 	# Start existing container
 	def start(self, container):
+
 		self.log.debug('Starting container: %s', container)
 		out = read_command(['docker', 'start', container])
+
+		self.flush_containers()
 
 	# Stop running container
 	def stop(self, container, remove=True):
@@ -100,11 +116,15 @@ class Docker(object):
 		if remove:
 			self.rm(container)
 
+		self.flush_containers()
+
 	# Remove container
 	def rm(self, container):
 
 		self.log.debug('Removing stopped container: %s' % container)
 		out = read_command(['docker', 'rm', container])
+
+		self.flush_containers()
 
 	# Remove image
 	def rmi(self, image):
@@ -112,11 +132,13 @@ class Docker(object):
 		self.log.debug('Removing image: %s' % image)
 		out = read_command(['docker', 'rmi', image])
 
+		self.flush_images()
+
 	# Cleanup stopped containers and unused images
 	def cleanup(self, images=True):
 
 		# Always refresh state before cleanup
-		self.refresh()
+		self.flush()
 
 		running = []
 
