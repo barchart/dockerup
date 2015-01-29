@@ -64,7 +64,7 @@ class DockerUp(object):
 		current = self.status(container)
 		updated = self.updated(container)
 
-		if not 'pull' in self.settings or self.settings['pull']:
+		if current['image'] is None or not 'pull' in self.settings or self.settings['pull']:
 			updated = self.docker.pull(container['image']) or updated
 
 		status = self.status(container)
