@@ -71,8 +71,11 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--config', default=DEFAULT_CONFIG, help='Configuration file')
 	parser.add_argument('--cache', default=DEFAULT_CACHE, help='Configuration cache')
-	parser.add_argument('--aws', action='store_true', help='Fetch EC2 user-data for configuration')
 	parser.add_argument('--confdir', help='Scan directory for configuration files')
+	parser.add_argument('--aws', dest='aws', action='store_const', const=True, help='Fetch EC2 user-data for configuration')
+	parser.add_argument('--no-aws', dest='aws', action='store_const', const=False, help='Ignore EC2 user-data for configuration')
+	parser.add_argument('--pull', dest='pull', action='store_const', const=True, help='Force pulling images from registry')
+	parser.add_argument('--no-pull', dest='pull', action='store_const', const=False, help='Skip pulling images from registry')
 	parser.add_argument('-v', '--verbose', action='store_true', help='Verbose logging for debugging')
 	args = parser.parse_args()
 
@@ -105,4 +108,4 @@ if __name__ == '__main__':
 			log.error('No configuration provided')
 			sys.exit(1)
 
-		DockerUp(config.config, args.cache).start()
+		DockerUp(settings, config.config, args.cache).start()

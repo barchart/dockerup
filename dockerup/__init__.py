@@ -46,8 +46,9 @@ class DockerUp(object):
 	}
 	"""
 
-	def __init__(self, config, cache):
+	def __init__(self, settings, config, cache):
 
+		self.settings = settings
 		self.config = config
 		self.cache = cache
 		self.docker = docker.Docker()
@@ -61,7 +62,11 @@ class DockerUp(object):
 			return
 
 		current = self.status(container)
-		updated = self.docker.pull(container['image']) or self.updated(container)
+		updated = self.updated(container)
+
+		if not 'pull' in self.settings or self.settings['pull']:
+			updated = self.docker.pull(container['image']) or updated
+
 		status = self.status(container)
 
 		if updated or not current['running']:

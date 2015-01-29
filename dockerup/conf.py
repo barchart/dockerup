@@ -5,13 +5,23 @@ from dockerup.proc import read_command
 
 def settings(args):
 
-	settings = properties(args.config) if os.path.exists(args.config) else {}
+	settings = {
+		'confdir': '/etc/dockerup/containers.d',
+		'aws': False,
+		'pull': True
+	}
+
+	if os.path.exists(args.config):
+		settings.update(properties(args.config))
 
 	if args.confdir:
 		settings['confdir'] = args.confdir
 
-	if args.aws:
-		settings['aws'] = True
+	if args.aws is not None:
+		settings['aws'] = args.aws
+
+	if args.pull is not None:
+		settings['pull'] = args.pull
 
 	return settings
 
