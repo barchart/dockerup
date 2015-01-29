@@ -152,6 +152,11 @@ class DockerUp(object):
 
 			for vol in config['volumes']:
 
+				if 'from' in vol:
+					args.append('--volumes-from')
+					args.append(vol['from'])
+					continue
+
 				if not 'containerPath' in vol:
 					self.log.warn('No container mount point specified, skipping volume')
 					continue
@@ -160,7 +165,7 @@ class DockerUp(object):
 				if 'hostPath' in vol:
 					volargs.append(vol['hostPath'])
 				volargs.append(vol['containerPath'])
-				if 'mode' in vol:
+				if 'hostPath' in vol and 'mode' in vol:
 					volargs.append(vol['mode'].lower())
 
 				args.append('-v')

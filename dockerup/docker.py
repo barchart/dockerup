@@ -110,6 +110,14 @@ class Docker(object):
 
 		self.flush_containers()
 
+	# Restart running container
+	def restart(self, container):
+
+		self.log.debug('Restarting container: %s', container)
+		out = read_command(['docker', 'restart', container])
+
+		self.flush_containers()
+
 	# Stop running container
 	def stop(self, container, remove=True):
 
