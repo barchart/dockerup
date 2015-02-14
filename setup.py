@@ -16,5 +16,5 @@ setup(name='dockerup',
 	data_files=[
 		('/etc/dockerup', ['etc/dockerup.conf']),
 		('/etc/dockerup/containers.d', ['etc/dockerup.json.sample']),
-	])
-	#install_requires=['docker-py>=0.7.0'])
+	],
+	install_requires=['docker-py>=0.7.0'])

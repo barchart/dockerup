@@ -19,31 +19,31 @@ This script can be run on-demand or via a cron job.
 Sample config file is shown below:
 
 {
-	"containers": [
-		{
-			"type": "docker",
-			"name": "historical-app",
-			"image": "barchart/historical-app-alpha",
-			"portMappings": [ 
-				{
-					"containerPort": "8080",
-					"hostPort": "8080"
-				}
-			]
-		},
-		{
-			"type": "docker",
-			"name": "logstash-forwarder",
-			"image": "barchart/logstash-forwarder",
-			"volumes": [
-				{
-					"containerPath": "/var/log/containers",
-					"hostPath": "/var/log/ext",
-					"mode": "ro"
-				}
-			]
-		}
-	]
+    "containers": [
+        {
+            "type": "docker",
+            "name": "historical-app",
+            "image": "barchart/historical-app-alpha",
+            "portMappings": [ 
+                {
+                    "containerPort": "8080",
+                    "hostPort": "8080"
+                }
+            ]
+        },
+        {
+            "type": "docker",
+            "name": "logstash-forwarder",
+            "image": "barchart/logstash-forwarder",
+            "volumes": [
+                {
+                    "containerPath": "/var/log/containers",
+                    "hostPath": "/var/log/ext",
+                    "mode": "ro"
+                }
+            ]
+        }
+    ]
 }
 """
 
@@ -54,58 +54,62 @@ LOG_FORMAT='%(asctime)s %(levelname)s %(name)s:%(lineno)d %(message)s'
 @contextmanager
 def flock(filename):
 
-	try:
-		with open(filename, 'a') as fd:
-			fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-			yield
-	except IOError, e:
-		if e.errno == errno.EAGAIN:
-			print 'Lock could not be acquired: %s' % filename
-			sys.exit(-1)
-		raise
+    try:
+        with open(filename, 'a') as fd:
+            fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            yield
+    except IOError, e:
+        if e.errno == errno.EAGAIN:
+            print 'Lock could not be acquired: %s' % filename
+            sys.exit(-1)
+        raise
 
 
 if __name__ == '__main__':
 
-	# Command line args
-	parser = argparse.ArgumentParser()
-	parser.add_argument('--config', default=DEFAULT_CONFIG, help='Configuration file')
-	parser.add_argument('--cache', default=DEFAULT_CACHE, help='Configuration cache')
-	parser.add_argument('--confdir', help='Scan directory for configuration files')
-	parser.add_argument('--aws', dest='aws', action='store_const', const=True, help='Fetch EC2 user-data for configuration')
-	parser.add_argument('--no-aws', dest='aws', action='store_const', const=False, help='Ignore EC2 user-data for configuration')
-	parser.add_argument('--pull', dest='pull', action='store_const', const=True, help='Force pulling images from registry')
-	parser.add_argument('--no-pull', dest='pull', action='store_const', const=False, help='Skip pulling images from registry')
-	parser.add_argument('-v', '--verbose', action='store_true', help='Verbose logging for debugging')
-	args = parser.parse_args()
+    # Command line args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', default=DEFAULT_CONFIG, help='Configuration file')
+    parser.add_argument('--cache', default=DEFAULT_CACHE, help='Configuration cache')
+    parser.add_argument('--confdir', help='Scan directory for configuration files')
+    parser.add_argument('--aws', dest='aws', action='store_const', const=True, help='Fetch EC2 user-data for configuration')
+    parser.add_argument('--no-aws', dest='aws', action='store_const', const=False, help='Ignore EC2 user-data for configuration')
+    parser.add_argument('--pull', dest='pull', action='store_const', const=True, help='Force pulling images from registry')
+    parser.add_argument('--no-pull', dest='pull', action='store_const', const=False, help='Skip pulling images from registry')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose logging for debugging')
+    args = parser.parse_args()
 
-	# Logging configuration
-	level = logging.DEBUG if args.verbose else logging.INFO
-	logging.basicConfig(level=level, format=LOG_FORMAT)
-	log = logging.getLogger(__name__)
+    # Logging configuration
+    level = logging.DEBUG if args.verbose else logging.INFO
+    logging.basicConfig(level=level, format=LOG_FORMAT)
+    log = logging.getLogger(__name__)
 
-	# Initialize cache
-	if not os.path.exists(args.cache):
-		try:
-			os.makedirs(args.cache)
-			log.debug('Created cache directory: %s' % args.cache)
-		except Exception as e:
-			log.error('Could not create cache directory: %s' % e)
-			sys.exit(1)
+    # Chatty
+    urllib = logging.getLogger('urllib3.connectionpool')
+    urllib.setLevel(logging.INFO)
 
-	with flock('%s/run.lock' % args.cache):
+    # Initialize cache
+    if not os.path.exists(args.cache):
+        try:
+            os.makedirs(args.cache)
+            log.debug('Created cache directory: %s' % args.cache)
+        except Exception as e:
+            log.error('Could not create cache directory: %s' % e)
+            sys.exit(1)
 
-		settings = conf.settings(args)
-		config = conf.Config(settings)
+    with flock('%s/run.lock' % args.cache):
 
-		if 'confdir' in settings:
-			config.merge(conf.FilesConfig(settings['confdir']))
+        settings = conf.settings(args)
+        config = conf.Config(settings)
 
-		if 'aws' in settings and settings['aws']:
-			config.merge(conf.AWSConfig())
+        if 'confdir' in settings:
+            config.merge(conf.FilesConfig(settings['confdir']))
 
-		if not len(config.config):
-			log.error('No configuration provided')
-			sys.exit(1)
+        if 'aws' in settings and settings['aws']:
+            config.merge(conf.AWSConfig())
 
-		DockerUp(config.config, args.cache).start()
+        if not len(config.config):
+            log.error('No configuration provided')
+            sys.exit(1)
+
+        DockerUp(config.config, args.cache).start()
