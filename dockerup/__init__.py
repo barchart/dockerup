@@ -5,6 +5,7 @@ import sys
 import shutil
 import json
 import logging
+import time
 
 from dockerup.dockerpy import DockerPyClient
 
@@ -68,28 +69,48 @@ class DockerUp(object):
         if current['Image'] is None or not 'pull' in self.config or self.config['pull']:
             updated = self.docker.pull(entry['image']) or updated
 
-        status = self.status(entry)
-
         if updated or not current['Running']:
 
             if current['Running']:
-                self.log.debug('Stopping old container: %s' % current['Id'])
-                self.stop(current)
-
-            if status['Image']:
-                try:
-                    self.run(entry)
-                    status = self.status(entry)
-                except Exception as e:
-                    self.log.error('Could not run container: %s' % e)
+                return self.update_next_window(entry, current)
             else:
-                self.log.error('Image not found: %s' % entry['image'])
+                return self.launch(entry)
+
+        return current
+
+    def update_next_window(self, entry, status):
+        if not 'rolling' in self.config:
+            return self.replace(entry, status)
+        else:
+            # TODO use central coordinator service to wait for available update window
+            return status
+
+    def replace(self, entry, current):
+        self.log.debug('Stopping old container: %s' % current['Id'])
+        self.stop(current)
+        return self.launch(entry)
+
+    def launch(self, entry, callback=None):
+
+        status = self.status(entry)
+
+        if status['Image']:
+            try:
+                self.run(entry)
+                status = self.status(entry)
+            except Exception as e:
+                self.log.error('Could not run container: %s' % e)
+        else:
+            self.log.error('Image not found: %s' % entry['image'])
+
+        if callback:
+            callback(status)
 
         return status
 
     def status(self, entry):
 
-        image = self.docker.image(entry['image']);
+        image = self.docker.image(entry['image'])
         container = self.docker.container(image['Id']) if image else None
 
         return {
@@ -150,7 +171,7 @@ class DockerUp(object):
         if remove:
             try:
                 # Remove logs directory
-                shutil.rmtree('/var/log/ext/%s' % status['image'])
+                shutil.rmtree('/var/log/ext/%s' % status['Id'])
             except Exception as e:
                 self.log.warn('Could not remove logs: %s' % e)
 
@@ -201,7 +222,8 @@ class DockerUp(object):
 
             os.unlink(cachefile)
 
-    def start(self):
+    # Run a single sync cycle
+    def sync(self):
 
         # Rare occurence, kill containers that have an unknown image tag
         # Usually due to manual updates, may be required to avoid port binding conflicts
@@ -220,3 +242,16 @@ class DockerUp(object):
 
         # Remove unused containers/images from Docker
         self.docker.cleanup()
+
+    def start(self):
+        if 'onetime' in self.config and self.config['onetime']:
+            self.sync()
+        else:
+            # TODO connect to control queue (SQS?) for update broadcasts
+            while True:
+                try:
+                    self.sync()
+                    time.sleep(self.config['interval'])
+                except Exception as e:
+                    self.log.error('Error in sync loop: %s' + e.message)
+                    pass

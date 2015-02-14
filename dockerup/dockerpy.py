@@ -144,4 +144,4 @@ class DockerPyClient(DockerClient):
         self.client.remove_container(container)
 
     def docker_rmi(self, image):
-        self.client.remove_image(container)
+        self.client.remove_image(image)

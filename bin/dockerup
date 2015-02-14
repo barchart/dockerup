@@ -74,6 +74,7 @@ if __name__ == '__main__':
     parser.add_argument('--confdir', help='Scan directory for configuration files')
     parser.add_argument('--aws', dest='aws', action='store_const', const=True, help='Fetch EC2 user-data for configuration')
     parser.add_argument('--no-aws', dest='aws', action='store_const', const=False, help='Ignore EC2 user-data for configuration')
+    parser.add_argument('--one-time', dest='onetime', action='store_const', const=True, help='Run once, then exit')
     parser.add_argument('--pull', dest='pull', action='store_const', const=True, help='Force pulling images from registry')
     parser.add_argument('--no-pull', dest='pull', action='store_const', const=False, help='Skip pulling images from registry')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose logging for debugging')

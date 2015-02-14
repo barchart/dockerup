@@ -28,6 +28,9 @@ def settings(args):
 	if args.pull is not None:
 		settings['pull'] = args.pull
 
+	if args.onetime is not None:
+		settings['onetime'] = args.onetime
+
 	return settings
 
 def properties(filename):
