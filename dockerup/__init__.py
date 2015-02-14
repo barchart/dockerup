@@ -1,10 +1,12 @@
 #!/usr/bin/python2.7
 
-import json
 import os
+import sys
 import shutil
+import json
 import logging
-import dockerup.docker
+
+from dockerup.dockerpy import DockerPyClient
 
 class DockerUp(object):
 
@@ -46,71 +48,65 @@ class DockerUp(object):
 	}
 	"""
 
-	def __init__(self, settings, config, cache):
+	def __init__(self, config, cache):
 
-		self.settings = settings
 		self.config = config
 		self.cache = cache
-		self.docker = docker.Docker()
+		self.docker = DockerPyClient(config['remote'], config['username'], config['password'], config['email'])
 
 		self.log = logging.getLogger(__name__)
 
-	def update(self, container):
+	def update(self, entry):
 
-		if not 'image' in container:
+		if not 'image' in entry:
 			self.log.warn('No image defined for container, skipping')
 			return
 
-		current = self.status(container)
-		updated = self.updated(container)
+		current = self.status(entry)
+		updated = self.updated(entry)
 
-		if current['image'] is None or not 'pull' in self.settings or self.settings['pull']:
-			updated = self.docker.pull(container['image']) or updated
+		if current['Image'] is None or not 'pull' in self.config or self.config['pull']:
+			updated = self.docker.pull(entry['image']) or updated
 
-		status = self.status(container)
+		status = self.status(entry)
 
-		if updated or not current['running']:
+		if updated or not current['Running']:
 
-			if current['running']:
-				self.log.debug('Stopping old container: %s' + current['container'])
+			if current['Running']:
+				self.log.debug('Stopping old container: %s' + current['Id'])
 				self.stop(current)
 
-			if status['image']:
+			if status['Image']:
 				try:
-					self.run(container, status)
-					status = self.status(container)
+					self.run(entry, status)
+					status = self.status(entry)
 				except Exception as e:
 					self.log.error('Could not run container: %s' % e)
 			else:
-				self.log.error('Image not found: %s' % container['image'])
+				self.log.error('Image not found: %s' % entry['image'])
 
 		return status
 
-	def status(self, container):
+	def status(self, entry):
 
-		image_parts = container['image'].split(':')
-		repository = image_parts[0]
-		tag = 'latest' if len(image_parts) == 1 else image_parts[1]
-
-		image = self.docker.image(repository, tag)
-		container = self.docker.container(image['id']) if image else None
+		image = self.docker.image(entry['image']);
+		container = self.docker.container(image['Id']) if image else None
 
 		return {
-			'repository': repository,
-			'tag': tag,
-			'image': image['id'] if image else None,
-			'container': container['id'] if container else None,
-			'running': container['running'] if container else False
+			'Id': container['Id'] if container else None,
+			'Tag': container['Image'] if container else None,
+			'Image': image['Id'] if image else None,
+			'Running': container['Running'] if container else False
 		}
 
-	def updated(self, container):
+	def updated(self, entry):
 		
-		cachefile = '%s/%s.json' % (self.cache, self.__cache_name(container))
+		cachefile = '%s/%s.json' % (self.cache, self.__cache_name(entry))
 
 		if not os.path.exists(cachefile):
 			return True
 
-		serialized = json.dumps(container)
+		serialized = json.dumps(entry)
 
 		with open(cachefile) as local:
 			cached = local.read()
@@ -124,19 +120,19 @@ class DockerUp(object):
 		
 		if 'containers' in self.config:
 
-			for container in self.config['containers']:
+			for entry in self.config['containers']:
 
-				cachefile = '%s/%s.json' % (self.cache, self.__cache_name(container))
+				cachefile = '%s/%s.json' % (self.cache, self.__cache_name(entry))
 
 				with open(cachefile, 'w') as local:
-					json.dump(container, local)
+					json.dump(entry, local)
 
-	def __cache_name(self, container):
+	def __cache_name(self, entry):
 
-		image_clean = container['image'].replace(':', '_').replace('/', '_')
+		image_clean = entry['image'].replace(':', '_').replace('/', '_')
 
-		if 'name' in container:
-			return '%s-%s' % (image_clean, container['name'])
+		if 'name' in entry:
+			return '%s-%s' % (image_clean, entry['name'])
 
 		return image_clean
 
@@ -145,62 +141,11 @@ class DockerUp(object):
 		if 'type' in config and config['type'] != 'docker':
 			return False
 
-		# Set up exported logging directory for apps
-		args = ['-v', '/var/log/ext/%s:/var/log/ext' % status['image']]
-
-		if 'volumes' in config:
-
-			for vol in config['volumes']:
-
-				if 'from' in vol:
-					args.append('--volumes-from')
-					args.append(vol['from'])
-					continue
-
-				if not 'containerPath' in vol:
-					self.log.warn('No container mount point specified, skipping volume')
-					continue
-
-				volargs = []
-				if 'hostPath' in vol:
-					volargs.append(vol['hostPath'])
-				volargs.append(vol['containerPath'])
-				if 'hostPath' in vol and 'mode' in vol:
-					volargs.append(vol['mode'].lower())
-
-				args.append('-v')
-				args.append(':'.join(volargs))
-
-		if 'name' in config:
-			if config['name'].startswith('local-'):
-				self.log.error('Invalid container name, local-* is reserved')
-				return False
-			args.append('--name=%s' % config['name'])
-
-		if 'privileged' in config and config['privileged']:
-			args.append('--privileged')
-
-		if 'network' in config:
-			args.append('--net=%s' % config['network'].lower())
-
-		if 'portMappings' in config:
-			for port in config['portMappings']:
-				args.append('-p')
-				if 'hostPort' in port:
-					args.append('%s:%s' % (port['hostPort'], port['containerPort']))
-				else:
-					args.append(port['containerPort'])
-
-		if 'env' in config:
-			for key, value in config['env'].iteritems():
-				args.append('-e')
-				args.append('%s=%s' % (key, value))
-
-		return self.docker.run(config['image'], args)
+		return self.docker.run(config)
 
 	def stop(self, status, remove=True):
 
-		self.docker.stop(status['container'], remove)
+		self.docker.stop(status['Id'], remove)
 
 		if remove:
 			try:
@@ -226,13 +171,13 @@ class DockerUp(object):
 
 			status = self.status(cached)
 			
-			if status['container']:
-				existing.append(status['container'])
+			if status['Id']:
+				existing.append(status['Id'])
 
 		self.log.debug('Cleaning up orphaned containers')
 
 		# Iterate through running containers and stop them if they don't match a cached config
-		[self.docker.stop(c['id']) for c in self.docker.containers() if c['running'] and not c['id'] in existing]
+		[self.docker.stop(c['Id']) for c in self.docker.containers() if c['Running'] and not c['Id'] in existing]
 
 	# Shutdown leftover containers from old configurations
 	def cleanup(self, running):
@@ -251,7 +196,7 @@ class DockerUp(object):
 
 			status = self.status(cached)
 
-			if status['container'] and not status['container'] in running:
+			if status['Id'] and not status['Id'] in running:
 				self.stop(status)
 
 			os.unlink(cachefile)
@@ -265,7 +210,7 @@ class DockerUp(object):
 		# Process configuration and store running container IDs
 		running = []
 		if 'containers' in self.config:
-			running = [self.update(container)['container'] for container in self.config['containers']]
+			running = [self.update(container)['Id'] for container in self.config['containers']]
 
 		# Cleanup containers with no config
 		self.cleanup(running)

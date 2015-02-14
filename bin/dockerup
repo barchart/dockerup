@@ -96,7 +96,7 @@ if __name__ == '__main__':
 	with flock('%s/run.lock' % args.cache):
 
 		settings = conf.settings(args)
-		config = conf.Config()
+		config = conf.Config(settings)
 
 		if 'confdir' in settings:
 			config.merge(conf.FilesConfig(settings['confdir']))
@@ -108,4 +108,4 @@ if __name__ == '__main__':
 			log.error('No configuration provided')
 			sys.exit(1)
 
-		DockerUp(settings, config.config, args.cache).start()
+		DockerUp(config.config, args.cache).start()
