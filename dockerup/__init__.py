@@ -268,9 +268,7 @@ class DockerUp(object):
         self.docker.cleanup()
 
     def start(self):
-        if 'onetime' in self.config and self.config['onetime']:
-            self.sync()
-        else:
+        if 'server' in self.config and self.config['server']:
             # TODO connect to control queue (SQS?) for update broadcasts
             while True:
                 try:
@@ -279,3 +277,5 @@ class DockerUp(object):
                 except Exception as e:
                     self.log.error('Error in sync loop: %s' + e.message)
                     pass
+        else:
+            self.sync()

@@ -28,8 +28,8 @@ def settings(args):
 	if args.pull is not None:
 		settings['pull'] = args.pull
 
-	if args.onetime is not None:
-		settings['onetime'] = args.onetime
+	if args.server is not None:
+		settings['server'] = args.server
 
 	return settings
 
