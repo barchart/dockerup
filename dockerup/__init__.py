@@ -74,39 +74,63 @@ class DockerUp(object):
             if current['Running']:
                 return self.update_next_window(entry, current)
             else:
-                return self.launch(entry)
+                return self.update_launch()(entry)
 
         return current
 
     def update_next_window(self, entry, status):
         if not 'rolling' in self.config:
-            return self.replace(entry, status)
+            return self.update_replace(entry, status)
         else:
             # TODO use central coordinator service to wait for available update window
             return status
 
-    def replace(self, entry, current):
-        self.log.debug('Stopping old container: %s' % current['Id'])
-        self.stop(current)
-        return self.launch(entry)
+    def update_replace(self, entry, status):
+		if 'name' in entry or 'portMappings' in entry:
+			# If container specifies a name or port mappings, it should be stopped first
+			# to avoid resource conflicts
+			return self.update_stop(status, self.update_launch())(entry)
+		else:
+			# Else, start new container first (primarily to facilitate self-upgrade of
+			# the dockerup management container itself)
+			return self.update_launch(self.update_stop(status))(entry)
 
-    def launch(self, entry, callback=None):
+    def update_stop(self, status, callback=None):
 
-        status = self.status(entry)
+		def actual(entry):
 
-        if status['Image']:
-            try:
-                self.run(entry)
-                status = self.status(entry)
-            except Exception as e:
-                self.log.error('Could not run container: %s' % e)
-        else:
-            self.log.error('Image not found: %s' % entry['image'])
+			self.log.debug('Stopping old container: %s' % status['Id'])
+			self.stop(status)
 
-        if callback:
-            callback(status)
+			if callback:
+				return callback(entry)
 
-        return status
+			return status
+
+		return actual
+
+    def update_launch(self, callback=None):
+
+		def actual(entry):
+
+			status = self.status(entry)
+
+			if status['Image']:
+				try:
+					self.log.debug('Starting new container')
+					self.run(entry)
+					status = self.status(entry)
+				except Exception as e:
+					self.log.error('Could not run container: %s' % e)
+			else:
+				self.log.error('Image not found: %s' % entry['image'])
+
+			if callback:
+				callback(entry)
+
+			return status
+		
+		return actual
 
     def status(self, entry):
 
