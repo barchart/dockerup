@@ -86,51 +86,51 @@ class DockerUp(object):
             return status
 
     def update_replace(self, entry, status):
-		if 'name' in entry or 'portMappings' in entry:
-			# If container specifies a name or port mappings, it should be stopped first
-			# to avoid resource conflicts
-			return self.update_stop(status, self.update_launch())(entry)
-		else:
-			# Else, start new container first (primarily to facilitate self-upgrade of
-			# the dockerup management container itself)
-			return self.update_launch(self.update_stop(status))(entry)
+        if 'name' in entry or 'portMappings' in entry:
+            # If container specifies a name or port mappings, it should be stopped first
+            # to avoid resource conflicts
+            return self.update_stop(status, self.update_launch())(entry)
+        else:
+            # Else, start new container first (primarily to facilitate self-upgrade of
+            # the dockerup management container itself)
+            return self.update_launch(self.update_stop(status))(entry)
 
     def update_stop(self, status, callback=None):
 
-		def actual(entry):
+        def actual(entry):
 
-			self.log.debug('Stopping old container: %s' % status['Id'])
-			self.stop(status)
+            self.log.debug('Stopping old container: %s' % status['Id'])
+            self.stop(status)
 
-			if callback:
-				return callback(entry)
+            if callback:
+                return callback(entry)
 
-			return status
+            return status
 
-		return actual
+        return actual
 
     def update_launch(self, callback=None):
 
-		def actual(entry):
+        def actual(entry):
 
-			status = self.status(entry)
+            status = self.status(entry)
 
-			if status['Image']:
-				try:
-					self.log.debug('Starting new container')
-					self.run(entry)
-					status = self.status(entry)
-				except Exception as e:
-					self.log.error('Could not run container: %s' % e)
-			else:
-				self.log.error('Image not found: %s' % entry['image'])
+            if status['Image']:
+                try:
+                    self.log.debug('Starting new container')
+                    self.run(entry)
+                    status = self.status(entry)
+                except Exception as e:
+                    self.log.error('Could not run container: %s' % e)
+            else:
+                self.log.error('Image not found: %s' % entry['image'])
 
-			if callback:
-				callback(entry)
+            if callback:
+                callback(entry)
 
-			return status
-		
-		return actual
+            return status
+        
+        return actual
 
     def status(self, entry):
 
@@ -200,10 +200,21 @@ class DockerUp(object):
                 self.log.warn('Could not remove logs: %s' % e)
 
     # Shutdown containers with unrecognized images
-    def shutdown_unknown(self):
+    def shutdown_unknown(self, entries=None):
 
         existing = []
 
+        # Match new configs
+        if entries:
+            
+            for entry in entries:
+
+                status = self.status(entry)
+                
+                if status['Id']:
+                    existing.append(status['Id'])
+
+        # Match old configs
         for entry in os.listdir(self.cache):
 
             if not entry.endswith('.json'):
@@ -251,7 +262,7 @@ class DockerUp(object):
 
         # Rare occurence, kill containers that have an unknown image tag
         # Usually due to manual updates, may be required to avoid port binding conflicts
-        self.shutdown_unknown()
+        self.shutdown_unknown(self.config['containers'])
 
         # Process configuration and store running container IDs
         running = []
