@@ -7,8 +7,13 @@ def settings(args):
 
 	settings = {
 		'confdir': '/etc/dockerup/containers.d',
+		'remote': 'unix://var/run/docker.sock',
+		'interval': 60,
 		'aws': False,
-		'pull': True
+		'pull': True,
+		'username': None,
+		'password': None,
+		'email': None
 	}
 
 	if os.path.exists(args.config):
@@ -22,6 +27,9 @@ def settings(args):
 
 	if args.pull is not None:
 		settings['pull'] = args.pull
+
+	if args.server is not None:
+		settings['server'] = args.server
 
 	return settings
 
@@ -47,8 +55,8 @@ def properties(filename):
 
 class Config(object):
 
-	def __init__(self):
-		self.config = {}
+	def __init__(self, config={}):
+		self.config = config
 		self.log = logging.getLogger(__name__)
 
 	def merge(self, other):
