@@ -88,7 +88,7 @@ class DockerPyClient(DockerClient):
 
         kwargs = {
             'container': container,
-            'restart_policy': { 'MaximumRetryCount': 0, 'Name': 'always' },
+            'restart_policy': { 'MaximumRetryCount': 0, 'Name': 'on-failure' },
             'binds':  binds
         }
         

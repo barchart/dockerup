@@ -286,7 +286,7 @@ class DockerUp(object):
                     self.sync()
                     time.sleep(self.config['interval'])
                 except Exception as e:
-                    self.log.error('Error in sync loop: %s' + e.message)
+                    self.log.error('Error in sync loop: %s' % e.message)
                     pass
         else:
             self.sync()
