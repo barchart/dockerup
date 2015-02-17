@@ -63,7 +63,7 @@ class DockerPyClient(DockerClient):
             kwargs['environment'] = entry['env']
 
         if 'volumes' in entry:
-            volumes.append([vol['containerPath'] for vol in entry['volumes'] if 'containerPath' in vol])
+            volumes.extend([vol['containerPath'] for vol in entry['volumes'] if 'containerPath' in vol])
             volsFrom = [vol['from'] for vol in entry['volumes'] if 'from' in vol]
             if len(volsFrom):
                 kwargs['volumes_from'] = volsFrom
