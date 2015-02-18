@@ -60,6 +60,16 @@ class DockerUp(object):
 
         self.log = logging.getLogger(__name__)
 
+    def pull_allowed(self, entry):
+
+        if 'pull' in self.config and not self.config['pull']:
+            return False
+
+        if not 'update' in entry or not 'pull' in entry['update'] or entry['update']['pull']:
+            return True
+
+        return False
+
     def update(self, entry):
 
         if not 'image' in entry:
@@ -69,7 +79,7 @@ class DockerUp(object):
         current = self.status(entry)
         updated = self.updated(entry)
 
-        if current['Image'] is None or not 'pull' in self.config or self.config['pull']:
+        if current['Image'] is None or self.pull_allowed(entry):
             updated = self.docker.pull(entry['image']) or updated
 
         if updated or not current['Running']:
