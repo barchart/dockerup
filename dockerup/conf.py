@@ -74,4 +74,5 @@ def aws_config():
         logging.debug('Loading configuration from EC2 user-data')
         return json.loads(read_command(['ec2metadata', '--user-data'], timeout=5.0))
     except Exception as e:
+        logging.debug('Failed to retrieve EC2 user-data: %s' % e)
         return {}
