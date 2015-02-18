@@ -29,7 +29,7 @@ class DockerPyClient(DockerClient):
             'Created': cont['Created'],
             'Command': cont['Command'],
             'Status': cont['Status'],
-            'Running': cont['Status'].startswith('Up ')
+            'Running': cont['Status'].startswith('Up ') or cont['Status'].startswith('Restarting ')
         } for cont in self.client.containers()]
 
     def docker_pull(self, image):

@@ -82,21 +82,39 @@ class DockerUp(object):
         return current
 
     def update_next_window(self, entry, status):
-        if not 'rolling' in self.config:
-            return self.update_replace(entry, status)
-        else:
+
+        if 'update' in entry and 'rolling' in entry['update'] and entry['update']['rolling']:
             # TODO use central coordinator service to wait for available update window
-            return status
+            log.warn('Rolling updates not yet supported')
+
+        return self.update_replace(entry, status)
+
+    # Eager update: start new container first (primarily to facilitate self-upgrade
+    # of the dockerup management container itself)
+    def is_eager(self, entry):
+
+        if 'update' in entry and 'eager' in entry['update'] and entry['update']['eager']:
+
+            if 'name' in entry:
+                log.warn('Skipping eager update due to container name conflict')
+                return False
+
+            if 'portMappings' in entry:
+                for mapping in entry['portMappings']:
+                    if 'hostPort' in mapping:
+                        log.warn('Skipping eager update due to host port conflict')
+                        return False
+
+            return True
+
+        return False
 
     def update_replace(self, entry, status):
-        if 'name' in entry or 'portMappings' in entry:
-            # If container specifies a name or port mappings, it should be stopped first
-            # to avoid resource conflicts
-            return self.update_stop(status, self.update_launch())(entry)
-        else:
-            # Else, start new container first (primarily to facilitate self-upgrade of
-            # the dockerup management container itself)
+
+        if self.is_eager(entry):
             return self.update_launch(self.update_stop(status))(entry)
+    
+        return self.update_stop(status, self.update_launch())(entry)
 
     def update_stop(self, status, callback=None):
 
