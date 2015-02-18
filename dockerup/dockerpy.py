@@ -156,4 +156,6 @@ class DockerPyClient(DockerClient):
         self.client.remove_container(container)
 
     def docker_rmi(self, image):
-        self.client.remove_image(image)
+        # Force removal, sometimes conflicts result from truncated pulls when
+        # dockerup container upgrades/dies
+        self.client.remove_image(image, force=True)
