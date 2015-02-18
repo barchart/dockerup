@@ -5,102 +5,73 @@ from dockerup.proc import read_command
 
 def settings(args):
 
-	settings = {
-		'confdir': '/etc/dockerup/containers.d',
-		'remote': 'unix://var/run/docker.sock',
-		'interval': 60,
-		'aws': False,
-		'pull': True,
-		'username': None,
-		'password': None,
-		'email': None
-	}
+    settings = {
+        'confdir': '/etc/dockerup/containers.d',
+        'remote': 'unix://var/run/docker.sock',
+        'interval': 60,
+        'aws': False,
+        'pull': True,
+        'username': None,
+        'password': None,
+        'email': None
+    }
 
-	if os.path.exists(args.config):
-		settings.update(properties(args.config))
+    if os.path.exists(args.config):
+        settings.update(properties(args.config))
 
-	if args.confdir:
-		settings['confdir'] = args.confdir
+    if args.confdir:
+        settings['confdir'] = args.confdir
 
-	if args.aws is not None:
-		settings['aws'] = args.aws
+    if args.aws is not None:
+        settings['aws'] = args.aws
 
-	if args.pull is not None:
-		settings['pull'] = args.pull
+    if args.pull is not None:
+        settings['pull'] = args.pull
 
-	if args.server is not None:
-		settings['server'] = args.server
+    if args.server is not None:
+        settings['server'] = args.server
 
-	return settings
+    return settings
 
 def properties(filename):
 
-	config = {}
+    config = {}
 
-	with open(filename, 'r') as f:
+    with open(filename, 'r') as f:
 
-		for line in f:
-			if line[:1] == '#':
-				continue
-			(key, value) = line.split('=')
-			value = value.strip()
-			if value.lower() in ['true', 'yes', '1']:
-				value = True
-			elif value.lower() in ['false', 'no', '0']:
-				value = False
-			config[key.strip()] = value
+        for line in f:
+            if line[:1] == '#':
+                continue
+            (key, value) = line.split('=')
+            value = value.strip()
+            if value.lower() in ['true', 'yes', '1']:
+                value = True
+            elif value.lower() in ['false', 'no', '0']:
+                value = False
+            config[key.strip()] = value
 
-	return config
+    return config
 
 
-class Config(object):
+def files_config(directory):
 
-	def __init__(self, config={}):
-		self.config = config
-		self.log = logging.getLogger(__name__)
+    if not os.path.exists(directory):
+        raise Exception('Configuration directory not found: %s' % directory)
 
-	def merge(self, other):
+    logging.debug('Loading configuration from %s' % directory)
 
-		if isinstance(other, Config):
-			other = other.config
+    containers = []
+    for entry in os.listdir(directory):
+        if entry.endswith('.json'):
+            with open('%s/%s' % (directory, entry)) as local:
+                containers.append(json.load(local))
 
-		for key in other:
-			if key in self.config:
-				self.config[key].extend(other[key])
-			else:
-				self.config[key] = other[key]
-		
-		return self
-	
+    return { 'containers': containers }
 
-class FilesConfig(Config):
+def aws_config():
 
-	def __init__(self, directory):
-
-		super(FilesConfig, self).__init__()
-
-		if not os.path.exists(directory):
-			raise Exception('Configuration directory not found: %s' % directory)
-
-		self.log.debug('Loading configuration from %s' % directory)
-
-		containers = []
-		for entry in os.listdir(directory):
-			if entry.endswith('.json'):
-				with open('%s/%s' % (directory, entry)) as local:
-					containers.append(json.load(local))
-
-		if len(containers):
-			self.merge({ 'containers': containers })
-
-class AWSConfig(Config):
-
-	def __init__(self):
-
-		super(AWSConfig, self).__init__()
-
-		try:
-			self.log.debug('Loading configuration from EC2 user-data')
-			self.merge(json.loads(read_command(['ec2metadata', '--user-data'], timeout=5.0)))
-		except Exception as e:
-			pass
+    try:
+        logging.debug('Loading configuration from EC2 user-data')
+        return json.loads(read_command(['ec2metadata', '--user-data'], timeout=5.0))
+    except Exception as e:
+        return {}

@@ -62,6 +62,18 @@ class DockerPyClient(DockerClient):
         if 'env' in entry:
             kwargs['environment'] = entry['env']
 
+        if 'cpu' in entry:
+            kwargs['cpu_shares'] = entry['cpu']
+
+        if 'memory' in entry:
+            kwargs['mem_limit'] = entry['memory']
+
+        if 'entrypoint' in entry:
+            kwargs['entrypoint'] = entry['entrypoint']
+
+        if 'command' in entry:
+            kwargs['command'] = entry['command']
+
         if 'volumes' in entry:
             volumes.extend([vol['containerPath'] for vol in entry['volumes'] if 'containerPath' in vol])
             volsFrom = [vol['from'] for vol in entry['volumes'] if 'from' in vol]

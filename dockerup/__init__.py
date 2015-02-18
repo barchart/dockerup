@@ -6,7 +6,9 @@ import shutil
 import json
 import logging
 import time
+import traceback
 
+from dockerup import conf
 from dockerup.dockerpy import DockerPyClient
 
 class DockerUp(object):
@@ -52,6 +54,7 @@ class DockerUp(object):
     def __init__(self, config, cache):
 
         self.config = config
+        self.containers = []
         self.cache = cache
         self.docker = DockerPyClient(config['remote'], config['username'], config['password'], config['email'])
 
@@ -146,31 +149,22 @@ class DockerUp(object):
 
     def updated(self, entry):
         
+        updated = False
+
         cachefile = '%s/%s.json' % (self.cache, self.__cache_name(entry))
 
-        if not os.path.exists(cachefile):
-            return True
+        if os.path.exists(cachefile):
+            with open(cachefile) as local:
+                if json.dumps(entry) != local.read():
+                    updated = True
+        else:
+            updated = True
 
-        serialized = json.dumps(entry)
+        if updated:
+            with open(cachefile, 'w') as local:
+                json.dump(entry, local)
 
-        with open(cachefile) as local:
-            cached = local.read()
-
-        if serialized != cached:
-            return True
-
-        return False
-
-    def cache_config(self):
-        
-        if 'containers' in self.config:
-
-            for entry in self.config['containers']:
-
-                cachefile = '%s/%s.json' % (self.cache, self.__cache_name(entry))
-
-                with open(cachefile, 'w') as local:
-                    json.dump(entry, local)
+        return updated
 
     def __cache_name(self, entry):
 
@@ -199,34 +193,24 @@ class DockerUp(object):
             except Exception as e:
                 self.log.warn('Could not remove logs: %s' % e)
 
-    # Shutdown containers with unrecognized images
+    # Shutdown containers with unrecognized images to avoid resource conflicts
     def shutdown_unknown(self, entries=None):
 
         existing = []
+        catalog = []
 
-        # Match new configs
-        if entries:
-            
-            for entry in entries:
-
-                status = self.status(entry)
-                
-                if status['Id']:
-                    existing.append(status['Id'])
-
-        # Match old configs
-        for entry in os.listdir(self.cache):
-
-            if not entry.endswith('.json'):
-                continue
-
-            cachefile = '%s/%s' % (self.cache, entry)
-
+        def cached_entry(cached):
+            cachefile = '%s/%s' % (self.cache, cached)
             with open(cachefile) as local:
-                cached = json.load(local)
+                return json.load(local)
 
-            status = self.status(cached)
-            
+        if entries:
+            catalog.extend(entries)
+
+        catalog.extend([cached_entry(cf) for cf in os.listdir(self.cache) if cf.endswith('.json')])
+
+        for entry in catalog:
+            status = self.status(entry)
             if status['Id']:
                 existing.append(status['Id'])
 
@@ -236,7 +220,7 @@ class DockerUp(object):
         [self.docker.stop(c['Id']) for c in self.docker.containers() if c['Running'] and not c['Id'] in existing]
 
     # Shutdown leftover containers from old configurations
-    def cleanup(self, running):
+    def cleanup(self, valid):
 
         self.log.debug('Cleaning up missing configurations')
 
@@ -252,28 +236,45 @@ class DockerUp(object):
 
             status = self.status(cached)
 
-            if status['Id'] and not status['Id'] in running:
+            if status['Id'] and not status['Id'] in valid:
+                os.unlink(cachefile)
                 self.stop(status)
 
-            os.unlink(cachefile)
+    def update_config(self):
+
+        config = {}
+        containers = []
+
+        def merge(cfg):
+            if 'containers' in cfg:
+                containers.extend(cfg['containers'])
+                del cfg['containers']
+            config.update(cfg)
+
+        if 'confdir' in self.config:
+            merge(conf.files_config(self.config['confdir']))
+
+        if 'aws' in self.config and self.config['aws']:
+            merge(conf.aws_config())
+
+        self.containers = containers
+        self.config.update(config)
 
     # Run a single sync cycle
     def sync(self):
 
+        # Update container config
+        self.update_config();
+
         # Rare occurence, kill containers that have an unknown image tag
         # Usually due to manual updates, may be required to avoid port binding conflicts
-        self.shutdown_unknown(self.config['containers'])
+        self.shutdown_unknown(self.containers)
 
         # Process configuration and store running container IDs
-        running = []
-        if 'containers' in self.config:
-            running = [self.update(container)['Id'] for container in self.config['containers']]
+        running = [self.update(container)['Id'] for container in self.containers]
 
         # Cleanup containers with no config
         self.cleanup(running)
-
-        # Cache config for next run
-        self.cache_config()
 
         # Remove unused containers/images from Docker
         self.docker.cleanup()
@@ -287,6 +288,7 @@ class DockerUp(object):
                     time.sleep(self.config['interval'])
                 except Exception as e:
                     self.log.error('Error in sync loop: %s' % e.message)
+                    self.log.debug(traceback.format_exc())
                     pass
         else:
             self.sync()

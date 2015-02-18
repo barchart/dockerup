@@ -99,18 +99,4 @@ if __name__ == '__main__':
             sys.exit(1)
 
     with flock('%s/run.lock' % args.cache):
-
-        settings = conf.settings(args)
-        config = conf.Config(settings)
-
-        if 'confdir' in settings:
-            config.merge(conf.FilesConfig(settings['confdir']))
-
-        if 'aws' in settings and settings['aws']:
-            config.merge(conf.AWSConfig())
-
-        if not len(config.config):
-            log.error('No configuration provided')
-            sys.exit(1)
-
-        DockerUp(config.config, args.cache).start()
+        DockerUp(conf.settings(args), args.cache).start()

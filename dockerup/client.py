@@ -54,7 +54,10 @@ class DockerClient(object):
     def images(self):
 
         if not len(self.image_cache):
-            self.image_cache = self.docker_images()
+            try:
+                self.image_cache = self.docker_images()
+            except Exception as e:
+                self.log.error('Unable to get image list: %s' % e.message)
 
         return self.image_cache
 
@@ -69,7 +72,10 @@ class DockerClient(object):
     def containers(self):
 
         if not len(self.container_cache):
-            self.container_cache = self.docker_containers()
+            try:
+                self.container_cache = self.docker_containers()
+            except Exception as e:
+                self.log.error('Unable to get container list: %s' % e.message)
 
         return self.container_cache
 
@@ -83,7 +89,7 @@ class DockerClient(object):
                 return True
             self.log.debug('Image is up to date')
         except Exception as e:
-            self.log.debug('Pull failed: ' + e.message)
+            self.log.warn('Unable to pull image: ' + e.message)
             # Missing image probably, just return false
             pass
 
@@ -91,9 +97,15 @@ class DockerClient(object):
 
     # Run a new container
     def run(self, entry):
+
+        container = None
+
         self.log.debug('Running container: %s' % entry['image'])
-        container = self.docker_run(entry)
-        self.log.info('Started container: %s' % container)
+        try:
+            container = self.docker_run(entry)
+            self.log.info('Started container: %s' % container)
+        except Exception as e:
+            self.log.error('Unable to run container: %s' % e.message)
         self.flush_containers()
 
         return container
@@ -101,19 +113,28 @@ class DockerClient(object):
     # Start existing container
     def start(self, container):
         self.log.debug('Starting container: %s', container)
-        self.docker_start(container)
+        try:
+            self.docker_start(container)
+        except Exception as e:
+            self.log.error('Unable to start container: %s' % e.message)
         self.flush_containers()
 
     # Restart running container
     def restart(self, container):
         self.log.debug('Restarting container: %s', container)
-        self.docker_restart(container)
+        try:
+            self.docker_restart(container)
+        except Exception as e:
+            self.log.error('Unable to restart container: %s' % e.message)
         self.flush_containers()
 
     # Stop running container
     def stop(self, container, remove=True):
         self.log.debug('Stopping container: %s', container)
-        self.docker_stop(container)
+        try:
+            self.docker_stop(container)
+        except Exception as e:
+            self.log.error('Unable to stop container: %s' % e.message)
         if remove:
             self.rm(container)
         self.flush_containers()
@@ -121,13 +142,19 @@ class DockerClient(object):
     # Remove container
     def rm(self, container):
         self.log.debug('Removing stopped container: %s' % container)
-        self.docker_rm(container)
+        try:
+            self.docker_rm(container)
+        except Exception as e:
+            self.log.error('Unable to remove container: %s' % e.message)
         self.flush_containers()
 
     # Remove image
     def rmi(self, image):
         self.log.debug('Removing image: %s' % image)
-        self.docker_rmi(image)
+        try:
+            self.docker_rmi(image)
+        except Exception as e:
+            self.log.error('Unable to remove image: %s' % e.message)
         self.flush_images()
 
     # Cleanup stopped containers and unused images
