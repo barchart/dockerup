@@ -81,8 +81,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Logging configuration
-    level = logging.DEBUG if args.verbose else logging.INFO
-    logging.basicConfig(level=level, format=LOG_FORMAT)
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
+    else:
+        logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, filename='/var/log/ext/dockerup.log')
     log = logging.getLogger(__name__)
 
     # Chatty

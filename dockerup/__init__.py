@@ -211,15 +211,7 @@ class DockerUp(object):
         return self.docker.run(config)
 
     def stop(self, status, remove=True):
-
         self.docker.stop(status['Id'], remove)
-
-        if remove:
-            try:
-                # Remove logs directory
-                shutil.rmtree('/var/log/ext/%s' % status['Id'])
-            except Exception as e:
-                self.log.warn('Could not remove logs: %s' % e)
 
     # Shutdown containers with unrecognized images to avoid resource conflicts
     def shutdown_unknown(self, entries=None):
