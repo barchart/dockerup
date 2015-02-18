@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from dockerup.proc import read_command
+import urllib2
 
 def settings(args):
 
@@ -72,7 +72,8 @@ def aws_config():
 
     try:
         logging.debug('Loading configuration from EC2 user-data')
-        return json.loads(read_command(['ec2metadata', '--user-data'], timeout=5.0))
+        response = urllib2.urlopen('http://instance-data.ec2.internal/latest/user-data')
+        return json.loads(response.read())
     except Exception as e:
         logging.debug('Failed to retrieve EC2 user-data: %s' % e)
         return {}
