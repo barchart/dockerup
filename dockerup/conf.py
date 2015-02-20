@@ -72,7 +72,7 @@ def aws_config():
 
     try:
         logging.debug('Loading configuration from EC2 user-data')
-        response = urllib2.urlopen('http://instance-data.ec2.internal/latest/user-data')
+        response = urllib2.urlopen('http://instance-data.ec2.internal/latest/user-data', None, 5)
         return json.loads(response.read())
     except Exception as e:
         logging.debug('Failed to retrieve EC2 user-data: %s' % e.message)
