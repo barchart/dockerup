@@ -98,9 +98,10 @@ class DockerPyClient(DockerClient):
             }
         }
 
+        restart_policy = 'on-failure'
+
         kwargs = {
             'container': container,
-            'restart_policy': { 'MaximumRetryCount': 0, 'Name': 'on-failure' },
             'binds':  binds
         }
         
@@ -143,6 +144,11 @@ class DockerPyClient(DockerClient):
                 for pm in entry['portMappings']:
                     portBinds[pm['containerPort']] = pm['hostPort'] if 'hostPort' in pm else None
                 kwargs['port_bindings'] = portBinds
+
+            if 'restart' in entry:
+                restart_policy = entry['restart']
+
+        kwargs['restart_policy'] = { 'MaximumRetryCount': 0, 'Name': restart_policy }
 
         self.client.start(**kwargs);
 
