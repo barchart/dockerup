@@ -1,4 +1,4 @@
-# ## dockerup
+### dockerup
 
 dockerup is a Docker container bootstrapper for individual VM hosts. It
 reads configuration from a file (or EC2 user-data to facilitate deploy-time
