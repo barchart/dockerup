@@ -16,12 +16,11 @@ pip install dockerup
 
 ## Running dockerup
 
-dockerup should be run in its own Docker container. An example of running it
+dockerup should be run in its own Docker container. You should ensure that
+it is set to automatically run on Docker startup. An example of running it
 this way can be found here:
 
 https://github.com/barchart/docker-dockerup
-
-You should ensure that it is set to automatically run on Docker startup.
 
 If you are running it outside of a container, it can also be executed manually:
 
