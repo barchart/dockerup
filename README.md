@@ -45,7 +45,8 @@ interval=60
 ; Check EC2 user-data for container configuration
 aws=false
 
-; Also pull images from the registry when checking for container configuration updates
+; Also pull images from the registry when checking for container
+; configuration updates
 pull=true
 ```
 
