@@ -59,6 +59,8 @@ for details.
 containers that should be run. All files ending with a `.json` extension will
 be parsed for container definitions.
 
+Example:
+
 ```
 etc/
   dockerup/
@@ -70,8 +72,7 @@ etc/
 
 ### Container Configuration Format
 
-The container configuration format defines which image to run, and how to
-configure it.
+The container configuration defines which image to run and how to configure it.
 
 Simple example of running a private registry mirror:
 
@@ -109,7 +110,7 @@ The container type. Only `docker` is supported.
 
 #### image
 
-The docker image to run. You should always qualify your image with a tag.
+The docker image to run. You should always fully qualify your image with a version tag.
 
 ```json
 "image": "barchart/java:latest"
@@ -117,7 +118,7 @@ The docker image to run. You should always qualify your image with a tag.
 
 #### name
 
-The container name. This must be unique pre-host, and can be used for configuring
+The container name. This must be unique per-host, and can be used for configuring
 data volume containers and network linking.
 
 ```json
@@ -174,7 +175,7 @@ The Docker networking mode to use. Valid values are `bridge`, `none`, `container
 
 #### volumes
 
-Volume mappings for the container. This can be used for host-mapped volumes and data
+Volume mappings for the container. This can be used for host-mapped volumes, or data
 volumes shared with other containers.
 
 Examples:
@@ -200,9 +201,9 @@ Examples:
     "mode": "ro"
   },
 
-  // Data volume container
+  // Import all volumes from a data volume container
   {
-    "from": "containerName"
+    "from": "backup"
   }
 
 ]
@@ -212,7 +213,7 @@ Examples:
 
 Network ports to map to the host system.
 
-```json
+```js
 "portMappings": [
   
   // Automatically assigned random host port
@@ -252,12 +253,19 @@ Container restart behavior. Valid values are `always`, `on-failure`, `never`.
 
 Update behavior configuration. There are three options in side the update block:
 
-- `pull`: If false, do not pull images when checking for updates. If an image does not
+- `pull` (true): If false, do not pull images when checking for updates. If an image does not
   exist locally, it will still make a pull attempt.
-- `eager`: It true, when container changes are detected, launch the replacement container
+- `eager` (false): It true, when container changes are detected, launch the replacement container
    before stopping the existing one. This is primarily in order to allow the dockerup
    container to update itself, but is useful in other situations.
-- `rolling`: *Not yet implemented*
+- `rolling` (false): *Not yet implemented*
+
+```json
+"update": {
+  "pull": true,
+  "eager": true
+}
+```
 
 ## EC2 User-Data
 
@@ -296,8 +304,8 @@ multiple containers per host:
 }
 ```
 
-Both of these configuration mechanisms can be used at the same time; if both are
-active, the resulting container list will be a combination of the two. This allows
-you to deploy base VM images that run several utility containers by default,
-while allowing dynamic definition of containers via user-data at deploy time,
-making it ideal for orchestration with CloudFormation.
+Both the local and EC2 configuration mechanisms can be used at the same time; if
+both are active, the resulting container list will be a combination of the two.
+This allows you to deploy base VM images that run several utility containers by
+default, while allowing dynamic definition of containers via user-data at deploy
+time, making it ideal for orchestration with CloudFormation.
