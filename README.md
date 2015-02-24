@@ -1,4 +1,4 @@
-### dockerup
+# ## dockerup
 
 dockerup is a Docker container bootstrapper for individual VM hosts. It
 reads configuration from a file (or EC2 user-data to facilitate deploy-time
@@ -8,9 +8,11 @@ shouldn't be running, upgrades containers that have updates available,
 and launches all new containers listed in the config. After each run it
 cleans up orphaned containers and images to save disk space.
 
-To install dockerup, install `docker` and `python-pip` and run:
+To install dockerup on Ubuntu, run as root:
 
 ```
+curl -sSL https://get.docker.com/ | sh
+apt-get -y install python-pip
 pip install dockerup
 ```
 
