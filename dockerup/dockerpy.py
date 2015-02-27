@@ -145,6 +145,9 @@ class DockerPyClient(DockerClient):
                     portBinds[pm['containerPort']] = pm['hostPort'] if 'hostPort' in pm else None
                 kwargs['port_bindings'] = portBinds
 
+            if 'links' in entry:
+                kwargs['links'] = entry['links']
+
             if 'restart' in entry:
                 restart_policy = entry['restart']
 
