@@ -2,6 +2,7 @@
 
 import logging
 import abc
+import traceback
 
 class DockerClient(object):
 
@@ -58,6 +59,7 @@ class DockerClient(object):
                 self.image_cache = self.docker_images()
             except Exception as e:
                 self.log.error('Unable to get image list: %s' % e.message)
+                self.log.debug(traceback.format_exc())
 
         return self.image_cache
 
@@ -76,6 +78,7 @@ class DockerClient(object):
                 self.container_cache = self.docker_containers()
             except Exception as e:
                 self.log.error('Unable to get container list: %s' % e.message)
+                self.log.debug(traceback.format_exc())
 
         return self.container_cache
 
@@ -106,6 +109,7 @@ class DockerClient(object):
             self.log.info('Started container: %s' % container)
         except Exception as e:
             self.log.error('Unable to run container: %s' % e.message)
+            self.log.debug(traceback.format_exc())
         self.flush_containers()
 
         return container
@@ -117,6 +121,7 @@ class DockerClient(object):
             self.docker_start(container)
         except Exception as e:
             self.log.error('Unable to start container: %s' % e.message)
+            self.log.debug(traceback.format_exc())
         self.flush_containers()
 
     # Restart running container
@@ -126,6 +131,7 @@ class DockerClient(object):
             self.docker_restart(container)
         except Exception as e:
             self.log.error('Unable to restart container: %s' % e.message)
+            self.log.debug(traceback.format_exc())
         self.flush_containers()
 
     # Stop running container
@@ -135,6 +141,7 @@ class DockerClient(object):
             self.docker_stop(container)
         except Exception as e:
             self.log.error('Unable to stop container: %s' % e.message)
+            self.log.debug(traceback.format_exc())
         if remove:
             self.rm(container)
         self.flush_containers()
@@ -146,6 +153,7 @@ class DockerClient(object):
             self.docker_rm(container)
         except Exception as e:
             self.log.error('Unable to remove container: %s' % e.message)
+            self.log.debug(traceback.format_exc())
         self.flush_containers()
 
     # Remove image
@@ -155,6 +163,7 @@ class DockerClient(object):
             self.docker_rmi(image)
         except Exception as e:
             self.log.error('Unable to remove image: %s' % e.message)
+            self.log.debug(traceback.format_exc())
         self.flush_images()
 
     # Cleanup stopped containers and unused images
