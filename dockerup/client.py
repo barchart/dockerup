@@ -169,6 +169,8 @@ class DockerClient(object):
     # Cleanup stopped containers and unused images
     def cleanup(self, images=True):
 
+        self.log.debug('Removing stopped containers')
+
         # Always refresh state before cleanup
         self.flush()
 
