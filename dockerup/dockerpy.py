@@ -50,17 +50,17 @@ class DockerPyClient(DockerClient):
         kwargs = {
             'image': entry['image'],
             'volumes': volumes,
-            'detach': True
+            'detach': True,
+            'environment': {
+                'DOCKER_IMAGE': entry['image']
+            }
         }
 
         if 'name' in entry:
-            if entry['name'].startswith('local-'):
-                self.log.error('Invalid container name, local-* is reserved')
-                return False
             kwargs['name'] = entry['name']
 
         if 'env' in entry:
-            kwargs['environment'] = entry['env']
+            kwargs['environment'].update(entry['env'])
 
         if 'cpu' in entry:
             kwargs['cpu_shares'] = entry['cpu']
