@@ -326,8 +326,8 @@ class DockerUp(object):
             self.sync()
 
     def handle_signal(self, signo, stack):
-        self.log.debug('Received signal %s' % signo)
-        self.shutdown()
+        self.log.info('Received signal %s, shutting down' % signo)
+        sys.exit(1)
 
     def shutdown(self):
         self.log.info('Shutting down')
