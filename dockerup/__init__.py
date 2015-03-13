@@ -242,10 +242,11 @@ class DockerUp(object):
 
         # Remove old log files from last run shutdown (gives logstash some time to process final messages)
         ids = [c['Id'] for c in self.docker.containers() if c['Running']]
-        for entry in os.listdir('/var/log/ext'):
-            if entry not in ids:
-                self.log.debug('Removing old logs for %s' % entry)
-                shutil.rmtree('/var/log/ext/%s' % entry)
+        if os.path.exists('/var/log/ext'):
+            for entry in os.listdir('/var/log/ext'):
+                if os.path.isdir(entry) and entry not in ids:
+                    self.log.debug('Removing old logs for %s' % entry)
+                    shutil.rmtree('/var/log/ext/%s' % entry)
 
     # Shutdown leftover containers from old configurations
     def cleanup(self, valid):
