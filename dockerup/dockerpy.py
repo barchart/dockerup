@@ -33,15 +33,22 @@ class DockerPyClient(DockerClient):
         } for cont in self.client.containers(all=True)]
 
     def docker_pull(self, image):
+
         (repository, tag) = self.tag(image)
-        updated = False
+        existing = self.image(image)
+
         for line in self.client.pull(repository=repository, stream=True, insecure_registry=True):
             parsed = json.loads(line)
             if 'error' in parsed:
                 raise Exception(parsed['error'])
-            elif 'status' in parsed and parsed['status'].startswith('Status: Downloaded newer image'):
-                updated = True
-        return updated
+
+        # Check if image updated
+        self.flush_images()
+        newer = self.image(image)
+        if newer['Id'] != existing['Id']:
+            return True
+
+        return False
 
     def docker_run(self, entry):
 
