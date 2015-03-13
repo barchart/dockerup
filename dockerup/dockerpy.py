@@ -98,12 +98,8 @@ class DockerPyClient(DockerClient):
 
     def docker_start(self, container, entry=None):
 
-        binds = {
-            '/var/log/ext/%s' % container: {
-                'bind': '/var/log/ext',
-                'ro': False
-            }
-        }
+        logsBound = False
+        binds = {}
 
         restart_policy = 'on-failure'
 
@@ -143,6 +139,9 @@ class DockerPyClient(DockerClient):
                         'ro': 'mode' in vol and vol['mode'].lower() == 'ro'
                     }
 
+                    if vol['containerPath'] == '/var/log/ext':
+                        logsBound = True
+
                 if len(volsFrom):
                     kwargs['volumes_from'] = volsFrom
 
@@ -159,6 +158,9 @@ class DockerPyClient(DockerClient):
                 restart_policy = entry['restart']
 
         kwargs['restart_policy'] = { 'MaximumRetryCount': 0, 'Name': restart_policy }
+
+        if not logsBound:
+            binds['/var/log/ext/%s' % container] = { 'bind': '/var/log/ext', 'ro': False }
 
         self.client.start(**kwargs);
 
