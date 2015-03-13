@@ -251,7 +251,7 @@ class DockerUp(object):
         ids = [c['Id'] for c in self.docker.containers() if c['Running']]
         if os.path.exists('/var/log/ext'):
             for entry in os.listdir('/var/log/ext'):
-                if os.path.isdir(entry) and entry not in ids:
+                if os.path.isdir('/var/log/ext/%s' % entry) and entry not in ids:
                     self.log.info('Removing old logs for %s' % entry)
                     shutil.rmtree('/var/log/ext/%s' % entry)
 
