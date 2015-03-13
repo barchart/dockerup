@@ -7,6 +7,7 @@ import json
 import logging
 import time
 import traceback
+import signal
 
 from dockerup import conf
 from dockerup.dockerpy import DockerPyClient
@@ -239,6 +240,13 @@ class DockerUp(object):
         # Iterate through running containers and stop them if they don't match a cached config
         [self.docker.stop(c['Id']) for c in self.docker.containers() if c['Running'] and not c['Id'] in existing]
 
+        # Remove old log files from last run shutdown (gives logstash some time to process final messages)
+        ids = [c['Id'] for c in self.docker.containers() if c['Running']]
+        for entry in os.listdir('/var/log/ext'):
+            if entry not in ids:
+                self.log.debug('Removing old logs for %s' % entry)
+                shutil.rmtree('/var/log/ext/%s' % entry)
+
     # Shutdown leftover containers from old configurations
     def cleanup(self, valid):
 
@@ -301,6 +309,9 @@ class DockerUp(object):
 
     def start(self):
         if 'server' in self.config and self.config['server']:
+
+            signal.signal(signal.SIGTERM, self.handle_signal)
+
             # TODO connect to control queue (SQS?) for update broadcasts
             while True:
                 try:
@@ -312,3 +323,11 @@ class DockerUp(object):
                     pass
         else:
             self.sync()
+
+    def handle_signal(self, signo, stack):
+        self.log.debug('Received signal %s' % signo)
+        self.shutdown()
+
+    def shutdown(self):
+        self.log.info('Shutting down')
+        sys.exit(0)
