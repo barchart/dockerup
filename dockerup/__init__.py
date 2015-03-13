@@ -85,6 +85,11 @@ class DockerUp(object):
 
         if updated or not current['Running']:
 
+            if 'links' in entry:
+                # Has dependency on another container, let's give Docker time to bring
+                # bring previous container up fully before attempting to launch
+                time.sleep(5)
+
             if current['Running']:
                 return self.update_next_window(entry, current)
             else:
@@ -149,6 +154,8 @@ class DockerUp(object):
 
             if status['Image']:
                 try:
+                    # Stop all dependencies, they will get updated/restarted
+                    self.stop_dependencies(entry)
                     self.log.debug('Starting new container')
                     self.run(entry)
                     status = self.status(entry)
@@ -286,14 +293,23 @@ class DockerUp(object):
         if 'aws' in self.config and self.config['aws']:
             merge(conf.aws_config())
 
-        self.containers = containers
+        self.containers = DependencyResolver(containers).resolve()
         self.config.update(config)
+
+    def stop_dependencies(self, entry):
+        if 'name' in entry:
+            for container in self.containers:
+                if 'links' in container and entry['name'] in container['links'].values():
+                    status = self.status(container)
+                    if status['Id'] and not status['Id'] in valid:
+                        self.log.debug('Stopping linked container %s' % status['Id'])
+                        self.stop(status)
 
     # Run a single sync cycle
     def sync(self):
 
         # Update container config
-        self.update_config();
+        self.update_config()
 
         # Rare occurence, kill containers that have an unknown image tag
         # Usually due to manual updates, may be required to avoid port binding conflicts
@@ -332,3 +348,58 @@ class DockerUp(object):
     def shutdown(self):
         self.log.info('Shutting down')
         sys.exit(0)
+
+class DependencyResolver(object):
+
+    def __init__(self, containers):
+        self.containers = containers
+
+    def resolve(self):
+
+        root = DependencyNode()
+        named = {}
+        nodes = []
+
+        # Create nodes and map to names if available
+        for container in self.containers:
+            node = DependencyNode(container)
+            nodes.append(node)
+            if 'name' in container:
+                named[container['name']] = node
+
+        # Register dependencies on each node
+        for node in nodes:
+            root.depend(node)
+            if 'links' in node.container:
+                for link in node.container['links'].values():
+                    if link in named:
+                        node.depend(named[link])
+
+        # Return dependency-sorted list
+        return [r.container for r in self.walk(root, [], [])]
+
+    def walk(self, node, resolved, seen):
+
+        seen.append(node)
+
+        for dep in node.deps:
+            if dep not in resolved:
+                if dep in seen:
+                    raise Exception('Circular dependency reference detected: %s -> %s'
+                        % (node.container['image'], dep.container['image']))
+                self.walk(dep, resolved, seen)
+
+        # Skip root node
+        if node.container:
+            resolved.append(node)
+
+        return resolved
+
+class DependencyNode(object):
+
+    def __init__(self, container=None):
+        self.container = container
+        self.deps = []
+
+    def depend(self, node):
+        self.deps.append(node)
