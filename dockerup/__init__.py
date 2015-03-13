@@ -299,7 +299,7 @@ class DockerUp(object):
     def stop_dependencies(self, entry):
         if 'name' in entry:
             for container in self.containers:
-                if 'links' in container and entry['name'] in container['links'].values():
+                if 'links' in container and entry['name'] in container['links'].keys():
                     status = self.status(container)
                     if status['Id'] and not status['Id'] in valid:
                         self.log.info('Dependent container %s will be restarted to maintain link consistency' % status['Id'])
@@ -371,7 +371,7 @@ class DependencyResolver(object):
         for node in nodes:
             root.depend(node)
             if 'links' in node.container:
-                for link in node.container['links'].values():
+                for link in node.container['links'].keys():
                     if link in named:
                         node.depend(named[link])
 
