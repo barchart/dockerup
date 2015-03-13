@@ -92,7 +92,7 @@ class DockerClient(object):
                 return True
             self.log.debug('Image is up to date')
         except Exception as e:
-            self.log.warn('Unable to pull image: ' + e.message)
+            self.log.warn('Unable to pull image: %s' % e.message)
             # Missing image probably, just return false
             pass
 

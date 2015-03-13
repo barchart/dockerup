@@ -45,7 +45,7 @@ class DockerPyClient(DockerClient):
         # Check if image updated
         self.flush_images()
         newer = self.image(image)
-        if newer['Id'] != existing['Id']:
+        if not existing or (newer['Id'] != existing['Id']):
             return True
 
         return False
