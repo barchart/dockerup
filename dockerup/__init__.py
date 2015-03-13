@@ -252,7 +252,7 @@ class DockerUp(object):
         if os.path.exists('/var/log/ext'):
             for entry in os.listdir('/var/log/ext'):
                 if os.path.isdir(entry) and entry not in ids:
-                    self.log.debug('Removing old logs for %s' % entry)
+                    self.log.info('Removing old logs for %s' % entry)
                     shutil.rmtree('/var/log/ext/%s' % entry)
 
     # Shutdown leftover containers from old configurations
@@ -302,7 +302,7 @@ class DockerUp(object):
                 if 'links' in container and entry['name'] in container['links'].values():
                     status = self.status(container)
                     if status['Id'] and not status['Id'] in valid:
-                        self.log.debug('Stopping linked container %s' % status['Id'])
+                        self.log.info('Dependent container %s will be restarted to maintain link consistency' % status['Id'])
                         self.stop(status)
 
     # Run a single sync cycle

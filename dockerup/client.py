@@ -87,7 +87,7 @@ class DockerClient(object):
         try:
             self.log.debug('Pulling image: %s', image)
             if self.docker_pull(image):
-                self.log.debug('Updated image found')
+                self.log.info('Updated image found: %s' % image)
                 self.flush_images()
                 return True
             self.log.debug('Image is up to date')
@@ -103,7 +103,7 @@ class DockerClient(object):
 
         container = None
 
-        self.log.debug('Running container: %s' % entry['image'])
+        self.log.info('Running container: %s' % entry['image'])
         try:
             container = self.docker_run(entry)
             self.log.info('Started container: %s' % container)
@@ -116,7 +116,7 @@ class DockerClient(object):
 
     # Start existing container
     def start(self, container):
-        self.log.debug('Starting container: %s', container)
+        self.log.info('Starting container: %s', container)
         try:
             self.docker_start(container)
         except Exception as e:
@@ -126,7 +126,7 @@ class DockerClient(object):
 
     # Restart running container
     def restart(self, container):
-        self.log.debug('Restarting container: %s', container)
+        self.log.info('Restarting container: %s', container)
         try:
             self.docker_restart(container)
         except Exception as e:
@@ -136,7 +136,7 @@ class DockerClient(object):
 
     # Stop running container
     def stop(self, container, remove=True):
-        self.log.debug('Stopping container: %s', container)
+        self.log.info('Stopping container: %s', container)
         try:
             self.docker_stop(container)
         except Exception as e:
@@ -148,7 +148,7 @@ class DockerClient(object):
 
     # Remove container
     def rm(self, container):
-        self.log.debug('Removing stopped container: %s' % container)
+        self.log.info('Removing stopped container: %s' % container)
         try:
             self.docker_rm(container)
         except Exception as e:
@@ -158,7 +158,7 @@ class DockerClient(object):
 
     # Remove image
     def rmi(self, image):
-        self.log.debug('Removing image: %s' % image)
+        self.log.info('Removing image: %s' % image)
         try:
             self.docker_rmi(image)
         except Exception as e:
@@ -169,7 +169,7 @@ class DockerClient(object):
     # Cleanup stopped containers and unused images
     def cleanup(self, images=True):
 
-        self.log.debug('Removing stopped containers')
+        self.log.info('Cleaning up stopped containers')
 
         # Always refresh state before cleanup
         self.flush()
