@@ -169,7 +169,7 @@ class DockerClient(object):
     # Cleanup stopped containers and unused images
     def cleanup(self, images=True):
 
-        self.log.info('Cleaning up stopped containers')
+        self.log.debug('Cleaning up stopped containers')
 
         # Always refresh state before cleanup
         self.flush()
