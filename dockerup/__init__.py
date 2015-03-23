@@ -298,12 +298,12 @@ class DockerUp(object):
 
     def stop_dependencies(self, entry):
         if 'name' in entry:
-            for container in self.containers:
-                if 'links' in container and entry['name'] in container['links'].keys():
-                    status = self.status(container)
-                    if status['Id'] and not status['Id'] in valid:
-                        self.log.info('Dependent container %s will be restarted to maintain link consistency' % status['Id'])
-                        self.stop(status)
+            for container in DependencyResolver(self.containers).downstream(entry['name']):
+		self.log.info(container)
+                status = self.status(container)
+                if status['Id']:
+                    self.log.info('Dependent container %s will be restarted to maintain link consistency' % status['Id'])
+                    self.stop(status)
 
     # Run a single sync cycle
     def sync(self):
@@ -352,12 +352,12 @@ class DockerUp(object):
 class DependencyResolver(object):
 
     def __init__(self, containers):
+
         self.containers = containers
 
-    def resolve(self):
+        self.root = DependencyNode()
+        self.named = {}
 
-        root = DependencyNode()
-        named = {}
         nodes = []
 
         # Create nodes and map to names if available
@@ -365,18 +365,48 @@ class DependencyResolver(object):
             node = DependencyNode(container)
             nodes.append(node)
             if 'name' in container:
-                named[container['name']] = node
+                self.named[container['name']] = node
 
         # Register dependencies on each node
         for node in nodes:
-            root.depend(node)
+
+            # Root depends on everything
+            self.root.depend(node)
+
+            # Linked containers
             if 'links' in node.container:
                 for link in node.container['links'].keys():
-                    if link in named:
-                        node.depend(named[link])
+                    if link in self.named:
+                        node.depend(self.named[link])
 
-        # Return dependency-sorted list
-        return [r.container for r in self.walk(root, [], [])]
+            # Data volume containers
+            if 'volumes' in node.container:
+                for vol in node.container['volumes']:
+                    if 'from' in vol and vol['from'] in self.named:
+                        node.depend(self.named[vol['from']])
+
+            # Network stack sharing containers
+            if 'network' in node.container:
+                if network.startswith('container:'):
+                    target = network.split(':')[1];
+                    if target in self.named:
+                        node.depend(self.named[target])
+
+    # Return dependency-sorted list
+    def resolve(self):
+        return [r.container for r in self.walk(self.root, [], [])]
+
+    # Return a list of containers that depend on a named container (directly or indirectly)
+    def downstream(self, name):
+        deps = []
+        if name in self.named:
+            node = self.named[name]
+            for d in self.root.deps:
+                if node in d.deps:
+                    if 'name' in d.container:
+                        deps.extend(self.downstream(d.container['name']))
+                    deps.append(d.container)
+        return deps
 
     def walk(self, node, resolved, seen):
 
