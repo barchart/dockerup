@@ -325,19 +325,29 @@ class DockerUp(object):
         self.docker.cleanup()
 
     def start(self):
+
         if 'server' in self.config and self.config['server']:
 
             signal.signal(signal.SIGTERM, self.handle_signal)
 
             # TODO connect to control queue (SQS?) for update broadcasts
             while True:
+
                 try:
-                    self.sync()
+
+                    try:
+                        self.sync()
+                    except Exception as e:
+                        self.log.error('Error in sync loop: %s' % e.message)
+                        self.log.debug(traceback.format_exc())
+
+                    # Separate sleep from sync loop to prevent logspam
                     time.sleep(self.config['interval'])
+
                 except Exception as e:
-                    self.log.error('Error in sync loop: %s' % e.message)
-                    self.log.debug(traceback.format_exc())
+                    # Sleep interrupted, just go to next loop
                     pass
+
         else:
             self.sync()
 
