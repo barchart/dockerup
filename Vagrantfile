@@ -19,6 +19,5 @@ Vagrant.configure(2) do |config|
 	# Every time refresh
 	cd /vagrant
 	sudo python setup.py install
-	sudo dockerup -v
   SHELL
 end
