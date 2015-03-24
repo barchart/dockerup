@@ -206,6 +206,10 @@ class DockerClient(object):
         pass
 
     @abc.abstractmethod
+    def docker_signal(self, container, sig):
+        pass
+
+    @abc.abstractmethod
     def docker_restart(self, container):
         pass
 

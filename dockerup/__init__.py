@@ -158,6 +158,9 @@ class DockerUp(object):
                     self.stop_dependencies(entry)
                     self.log.debug('Starting new container')
                     self.run(entry)
+                    if 'signal' in entry:
+                        for target in entry['signal'].keys():
+                            self.docker_signal(target, entry['signal'][target])
                     status = self.status(entry)
                 except Exception as e:
                     self.log.error('Could not run container: %s' % e)

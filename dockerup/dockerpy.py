@@ -164,6 +164,9 @@ class DockerPyClient(DockerClient):
 
         self.client.start(**kwargs);
 
+    def docker_signal(self, container, sig='HUP'):
+        self.client.kill(container, sig)
+
     def docker_restart(self, container):
         self.client.restart(container)
 
