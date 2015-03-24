@@ -86,12 +86,10 @@ if __name__ == '__main__':
     else:
         logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, filename='/var/log/ext/dockerup.log')
     log = logging.getLogger(__name__)
-    # Chatty, override
-    logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.INFO)
 
     # Chatty
-    urllib = logging.getLogger('urllib3.connectionpool')
-    urllib.setLevel(logging.INFO)
+    logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.INFO)
+    logging.getLogger('urllib3.connectionpool').setLevel(logging.INFO)
 
     # Initialize cache
     if not os.path.exists(args.cache):

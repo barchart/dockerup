@@ -387,8 +387,8 @@ class DependencyResolver(object):
 
             # Network stack sharing containers
             if 'network' in node.container:
-                if network.startswith('container:'):
-                    target = network.split(':')[1];
+                if node.container['network'].startswith('container:'):
+                    target = node.container['network'].split(':')[1];
                     if target in self.named:
                         node.depend(self.named[target])
 
