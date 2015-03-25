@@ -302,7 +302,6 @@ class DockerUp(object):
     def stop_dependencies(self, entry):
         if 'name' in entry:
             for container in DependencyResolver(self.containers).downstream(entry['name']):
-		self.log.info(container)
                 status = self.status(container)
                 if status['Id']:
                     self.log.info('Dependent container %s will be restarted to maintain link consistency' % status['Id'])
