@@ -29,7 +29,7 @@ class DockerUp(object):
                 "type": "docker",
                 "name": "historical-app",
                 "image": "barchart/historical-app-alpha",
-                "portMappings": [ 
+                "portMappings": [
                     {
                         "containerPort": "8080",
                         "hostPort": "8080"
@@ -129,7 +129,7 @@ class DockerUp(object):
 
         if self.is_eager(entry):
             return self.update_launch(self.update_stop(status))(entry)
-    
+
         return self.update_stop(status, self.update_launch())(entry)
 
     def update_stop(self, status, callback=None):
@@ -171,7 +171,7 @@ class DockerUp(object):
                 callback(entry)
 
             return status
-        
+
         return actual
 
     def status(self, entry):
@@ -187,7 +187,7 @@ class DockerUp(object):
         }
 
     def updated(self, entry):
-        
+
         updated = False
 
         cachefile = '%s/%s.json' % (self.cache, self.__cache_name(entry))
@@ -344,10 +344,11 @@ class DockerUp(object):
                         self.log.debug(traceback.format_exc())
 
                     # Separate sleep from sync loop to prevent logspam
-                    time.sleep(self.config['interval'])
+                    self.log.info('Config: %s' % self.config['interval'])
+                    time.sleep(float(self.config['interval']))
 
                 except Exception as e:
-                    # Sleep interrupted, just go to next loop
+                    self.log.error('Error in sync loop: %s' % e.message)
                     pass
 
         else:
